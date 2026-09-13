@@ -24,6 +24,8 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
+    "@clack/prompts": "1.8.0",
+    "@fluxo/db": "workspace:*",
     "@fluxo/logger": "workspace:*",
     "@fluxo/types": "workspace:*",
     "citty": "0.2.2"

@@ -1,0 +1,12 @@
+export { parseThemeId, themeCatalog } from "./catalog";
+export type { ResolvableCatalog, ThemeId, ThemeLoader } from "./catalog";
+export { themeManifestSchema } from "./manifest";
+export type { ThemeManifest } from "./manifest";
+export { ThemeProvider } from "./provider";
+export type { ThemeProviderProps } from "./provider";
+export { resolveTheme } from "./resolve";
+export type { ResolvedTheme, ResolveThemeOptions } from "./resolve";
+export type { ThemeModule } from "./types";
+export { t, useT } from "./use-t";
+export { useUI } from "./use-ui";
+export type { UIComponents, UIOverrides } from "@/registry/types";

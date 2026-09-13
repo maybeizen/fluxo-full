@@ -1,25 +1,35 @@
 import type { ReactNode } from "react";
-import { useUIStore } from "@/stores/ui";
-import { useUI } from "@/registry/ui-provider";
-import { AppHeader } from "./app-header";
-import { AppSidebar } from "./app-sidebar";
+import { useRouterState } from "@tanstack/react-router";
+import { appNavItems, crumbsForPath, homePathFor, type SidebarNavItem } from "@/components/layout/app-nav";
+import { useAccountMenu } from "@/hooks/use-account-menu";
+import { usePublicSettings } from "@/hooks/use-public-settings";
+import { useUI } from "@/theme-system";
 
 export interface AppShellProps {
   children: ReactNode;
+  navItems?: readonly SidebarNavItem[];
 }
 
-export function AppShell({ children }: AppShellProps) {
-  const { SidebarInset, SidebarProvider } = useUI();
-  const sidebarOpen = useUIStore((state) => state.sidebarOpen);
-  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
+export function AppShell({ children, navItems = appNavItems }: AppShellProps) {
+  const { AppShell: ThemeAppShell } = useUI();
+  const accountMenu = useAccountMenu();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const settings = usePublicSettings();
 
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <ThemeAppShell
+      navItems={navItems}
+      accountMenu={accountMenu}
+      crumbs={crumbsForPath(pathname)}
+      homeTo={homePathFor(pathname)}
+    >
+      {settings.appGlobalBannerAnnouncementEnabled &&
+      settings.appGlobalBannerAnnouncementMessage.trim().length > 0 ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm text-foreground">
+          {settings.appGlobalBannerAnnouncementMessage}
+        </div>
+      ) : null}
+      {children}
+    </ThemeAppShell>
   );
 }

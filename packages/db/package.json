@@ -17,6 +17,9 @@
     "types": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
@@ -27,6 +30,7 @@
   "devDependencies": {
     "@fluxo/config": "workspace:*",
     "@types/node": "catalog:",
+    "drizzle-kit": "0.31.10",
     "eslint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",

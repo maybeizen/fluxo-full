@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { AppProviders } from "@/app/providers";
 import { router } from "@/app/router";
-import "@/theme/tokens.css";
 
 document.documentElement.classList.add("dark");
 

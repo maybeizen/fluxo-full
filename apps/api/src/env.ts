@@ -7,7 +7,11 @@ const envSchema = z
   .object({
     NODE_ENV: nodeEnvSchema.default("development"),
     PORT: z.number().int().positive().default(3000),
-    FRONTEND_URL: z.string().min(1).default("http://localhost:5173"),
+    FRONTEND_URL: z
+      .string()
+      .min(1)
+      .default("http://localhost:5173")
+      .transform((value) => value.replace(/\/$/, "")),
     API_URL: z.string().min(1).default("http://localhost:3000"),
     APP_NAME: z.string().min(1).default("Fluxo"),
     APP_KEY: z.string().default(""),
@@ -15,7 +19,7 @@ const envSchema = z
     SESSION_LIFETIME: z.number().int().positive().default(7),
     BCRYPT_ROUNDS: z.number().int().min(10).max(15).default(12),
     COOKIE_DOMAIN: z.string().optional(),
-    POSTGRES_URL: z.string().optional(),
+    POSTGRES_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.number().int().min(1).max(65535).optional(),
@@ -113,7 +117,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     SESSION_LIFETIME: parseInteger(source.SESSION_LIFETIME, 7),
     BCRYPT_ROUNDS: parseInteger(source.BCRYPT_ROUNDS, 12),
     COOKIE_DOMAIN: optionalString(source.COOKIE_DOMAIN),
-    POSTGRES_URL: optionalString(source.POSTGRES_URL),
+    POSTGRES_URL: source.POSTGRES_URL,
     REDIS_URL: source.REDIS_URL,
     SMTP_HOST: optionalString(source.SMTP_HOST),
     SMTP_PORT: parseInteger(source.SMTP_PORT),

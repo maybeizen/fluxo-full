@@ -1,0 +1,8 @@
+{
+  "id": "example",
+  "name": "Example",
+  "version": "1.0.0",
+  "description": "Example theme that extends the default theme",
+  "author": "Fluxo",
+  "extends": "default"
+}

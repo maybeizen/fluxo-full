@@ -1,21 +1,30 @@
-import { useUI } from "@/registry/ui-provider";
+import { useSession } from "@/hooks/use-session";
+import { useUI } from "@/theme-system";
+import { ProfileSection } from "./profile/profile-section";
+import type { SettingsTab } from "./search";
+import { SecuritySection } from "./security/security-section";
+import { SessionsSection } from "./sessions/sessions-section";
 
-export function SettingsPage() {
-  const { Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } =
-    useUI();
+export function SettingsPage({ tab, token }: { tab?: SettingsTab; token?: string }) {
+  const { SettingsLayout, Skeleton } = useUI();
+  const session = useSession();
+  const user = session.data?.status === "authenticated" ? session.data.user : undefined;
+
+  if (!user) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Settings</CardTitle>
-        <CardDescription>Placeholder settings for the Fluxo workspace.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="instance-name">Instance name</Label>
-          <Input id="instance-name" defaultValue="Fluxo" disabled />
-        </div>
-      </CardContent>
-    </Card>
+    <SettingsLayout
+      tab={tab}
+      profile={<ProfileSection user={user} />}
+      security={<SecuritySection user={user} token={token} />}
+      sessions={<SessionsSection />}
+    />
   );
 }

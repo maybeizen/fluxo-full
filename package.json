@@ -16,7 +16,8 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "fluxo": "./apps/cli/dist/index.js"
   },
   "devDependencies": {
     "@fluxo/config": "workspace:*",

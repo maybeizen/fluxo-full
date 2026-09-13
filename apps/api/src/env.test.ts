@@ -3,6 +3,7 @@ import { loadEnv } from "./env.js";
 
 const required = {
   REDIS_URL: "redis://localhost:6379",
+  POSTGRES_URL: "postgres://fluxo:fluxo@localhost:5432/fluxo",
 } as const;
 
 describe("loadEnv", () => {
@@ -17,7 +18,7 @@ describe("loadEnv", () => {
     expect(env.SESSION_LIFETIME).toBe(7);
     expect(env.BCRYPT_ROUNDS).toBe(12);
     expect(env.COOKIE_DOMAIN).toBeUndefined();
-    expect(env.POSTGRES_URL).toBeUndefined();
+    expect(env.POSTGRES_URL).toBe(required.POSTGRES_URL);
     expect(env.STORAGE_PROVIDER).toBe("local");
     expect(env.S3_FORCE_PATH_STYLE).toBe(true);
     expect(env.PLUGINS_DIR).toBe("./plugins");
@@ -25,7 +26,11 @@ describe("loadEnv", () => {
   });
 
   it("requires REDIS_URL", () => {
-    expect(() => loadEnv({})).toThrow();
+    expect(() => loadEnv({ POSTGRES_URL: required.POSTGRES_URL })).toThrow();
+  });
+
+  it("requires POSTGRES_URL", () => {
+    expect(() => loadEnv({ REDIS_URL: required.REDIS_URL })).toThrow();
   });
 
   it("parses SMTP, storage, and plugin fields", () => {
@@ -41,7 +46,6 @@ describe("loadEnv", () => {
       SESSION_LIFETIME: "14",
       BCRYPT_ROUNDS: "13",
       COOKIE_DOMAIN: ".example.com",
-      POSTGRES_URL: "postgres://fluxo:fluxo@localhost:5432/fluxo",
       SMTP_HOST: "smtp.example.com",
       SMTP_PORT: "465",
       SMTP_USER: "fluxo",
@@ -69,6 +73,15 @@ describe("loadEnv", () => {
     expect(env.S3_PUBLIC_URL_BASE).toBe("https://cdn.example.com");
     expect(env.PLUGINS_DIR).toBe("/var/fluxo/plugins");
     expect(env.PLUGIN_HTTP_ALLOWLIST).toEqual(["panel.example.com", "10.0.0.12"]);
+  });
+
+  it("strips a trailing slash from FRONTEND_URL for CORS origin matching", () => {
+    const env = loadEnv({
+      ...required,
+      FRONTEND_URL: "https://panel.example.com/",
+    });
+
+    expect(env.FRONTEND_URL).toBe("https://panel.example.com");
   });
 
   it("rejects s3 storage without credentials", () => {

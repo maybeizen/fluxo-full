@@ -10,43 +10,398 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as AdminRouteImport } from './routes/_admin'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AppCartRouteImport } from './routes/_app/cart'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppInvoicesRouteImport } from './routes/_app/invoices'
+import { Route as AppNewsRouteImport } from './routes/_app/news'
+import { Route as AppServersRouteImport } from './routes/_app/servers'
+import { Route as AppServicesRouteImport } from './routes/_app/services'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppStoreRouteImport } from './routes/_app/store'
+import { Route as AppSupportRouteImport } from './routes/_app/support'
+import { Route as AuthConfirmEmailRouteImport } from './routes/_auth/confirm-email'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthMfaRouteImport } from './routes/_auth/mfa'
+import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin/index'
+import { Route as AdminAdminCategoriesRouteImport } from './routes/_admin/admin/categories'
+import { Route as AdminAdminConfigurableOptionsRouteImport } from './routes/_admin/admin/configurable-options'
+import { Route as AdminAdminCouponsRouteImport } from './routes/_admin/admin/coupons'
+import { Route as AdminAdminInvoicesRouteImport } from './routes/_admin/admin/invoices'
+import { Route as AdminAdminNewsRouteImport } from './routes/_admin/admin/news'
+import { Route as AdminAdminPluginsRouteImport } from './routes/_admin/admin/plugins'
+import { Route as AdminAdminProductsRouteImport } from './routes/_admin/admin/products'
+import { Route as AdminAdminServicesRouteImport } from './routes/_admin/admin/services'
+import { Route as AdminAdminSettingsRouteImport } from './routes/_admin/admin/settings'
+import { Route as AdminAdminSupportRouteImport } from './routes/_admin/admin/support'
+import { Route as AdminAdminUsersIndexRouteImport } from './routes/_admin/admin/users/index'
+import { Route as AdminAdminUsersIdRouteImport } from './routes/_admin/admin/users/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppCartRoute = AppCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesRoute = AppInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNewsRoute = AppNewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppServersRoute = AppServersRouteImport.update({
+  id: '/servers',
+  path: '/servers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppServicesRoute = AppServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStoreRoute = AppStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSupportRoute = AppSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AppRoute,
+} as any)
+const AuthConfirmEmailRoute = AuthConfirmEmailRouteImport.update({
+  id: '/confirm-email',
+  path: '/confirm-email',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthMfaRoute = AuthMfaRouteImport.update({
+  id: '/mfa',
+  path: '/mfa',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminCategoriesRoute = AdminAdminCategoriesRouteImport.update({
+  id: '/admin/categories',
+  path: '/admin/categories',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminConfigurableOptionsRoute =
+  AdminAdminConfigurableOptionsRouteImport.update({
+    id: '/admin/configurable-options',
+    path: '/admin/configurable-options',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminAdminCouponsRoute = AdminAdminCouponsRouteImport.update({
+  id: '/admin/coupons',
+  path: '/admin/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminInvoicesRoute = AdminAdminInvoicesRouteImport.update({
+  id: '/admin/invoices',
+  path: '/admin/invoices',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminNewsRoute = AdminAdminNewsRouteImport.update({
+  id: '/admin/news',
+  path: '/admin/news',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminPluginsRoute = AdminAdminPluginsRouteImport.update({
+  id: '/admin/plugins',
+  path: '/admin/plugins',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminProductsRoute = AdminAdminProductsRouteImport.update({
+  id: '/admin/products',
+  path: '/admin/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminServicesRoute = AdminAdminServicesRouteImport.update({
+  id: '/admin/services',
+  path: '/admin/services',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminSettingsRoute = AdminAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminSupportRoute = AdminAdminSupportRouteImport.update({
+  id: '/admin/support',
+  path: '/admin/support',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminUsersIndexRoute = AdminAdminUsersIndexRouteImport.update({
+  id: '/admin/users/',
+  path: '/admin/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminUsersIdRoute = AdminAdminUsersIdRouteImport.update({
+  id: '/admin/users/$id',
+  path: '/admin/users/$id',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRoute
+  '/cart': typeof AppCartRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/invoices': typeof AppInvoicesRoute
+  '/news': typeof AppNewsRoute
+  '/servers': typeof AppServersRoute
+  '/services': typeof AppServicesRoute
+  '/settings': typeof AppSettingsRoute
+  '/store': typeof AppStoreRoute
+  '/support': typeof AppSupportRoute
+  '/confirm-email': typeof AuthConfirmEmailRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/login': typeof AuthLoginRoute
+  '/mfa': typeof AuthMfaRoute
+  '/register': typeof AuthRegisterRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/admin/categories': typeof AdminAdminCategoriesRoute
+  '/admin/configurable-options': typeof AdminAdminConfigurableOptionsRoute
+  '/admin/coupons': typeof AdminAdminCouponsRoute
+  '/admin/invoices': typeof AdminAdminInvoicesRoute
+  '/admin/news': typeof AdminAdminNewsRoute
+  '/admin/plugins': typeof AdminAdminPluginsRoute
+  '/admin/products': typeof AdminAdminProductsRoute
+  '/admin/services': typeof AdminAdminServicesRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
+  '/admin/support': typeof AdminAdminSupportRoute
+  '/admin/': typeof AdminAdminIndexRoute
+  '/admin/users/$id': typeof AdminAdminUsersIdRoute
+  '/admin/users/': typeof AdminAdminUsersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRoute
+  '/cart': typeof AppCartRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/invoices': typeof AppInvoicesRoute
+  '/news': typeof AppNewsRoute
+  '/servers': typeof AppServersRoute
+  '/services': typeof AppServicesRoute
+  '/settings': typeof AppSettingsRoute
+  '/store': typeof AppStoreRoute
+  '/support': typeof AppSupportRoute
+  '/confirm-email': typeof AuthConfirmEmailRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/login': typeof AuthLoginRoute
+  '/mfa': typeof AuthMfaRoute
+  '/register': typeof AuthRegisterRoute
+  '/reset-password': typeof AuthResetPasswordRoute
+  '/admin/categories': typeof AdminAdminCategoriesRoute
+  '/admin/configurable-options': typeof AdminAdminConfigurableOptionsRoute
+  '/admin/coupons': typeof AdminAdminCouponsRoute
+  '/admin/invoices': typeof AdminAdminInvoicesRoute
+  '/admin/news': typeof AdminAdminNewsRoute
+  '/admin/plugins': typeof AdminAdminPluginsRoute
+  '/admin/products': typeof AdminAdminProductsRoute
+  '/admin/services': typeof AdminAdminServicesRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
+  '/admin/support': typeof AdminAdminSupportRoute
+  '/admin': typeof AdminAdminIndexRoute
+  '/admin/users/$id': typeof AdminAdminUsersIdRoute
+  '/admin/users': typeof AdminAdminUsersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRoute
+  '/_admin': typeof AdminRouteWithChildren
+  '/_app': typeof AppRouteWithChildren
+  '/_auth': typeof AuthRouteWithChildren
+  '/_app/cart': typeof AppCartRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/invoices': typeof AppInvoicesRoute
+  '/_app/news': typeof AppNewsRoute
+  '/_app/servers': typeof AppServersRoute
+  '/_app/services': typeof AppServicesRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/store': typeof AppStoreRoute
+  '/_app/support': typeof AppSupportRoute
+  '/_auth/confirm-email': typeof AuthConfirmEmailRoute
+  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/mfa': typeof AuthMfaRoute
+  '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRoute
+  '/_admin/admin/categories': typeof AdminAdminCategoriesRoute
+  '/_admin/admin/configurable-options': typeof AdminAdminConfigurableOptionsRoute
+  '/_admin/admin/coupons': typeof AdminAdminCouponsRoute
+  '/_admin/admin/invoices': typeof AdminAdminInvoicesRoute
+  '/_admin/admin/news': typeof AdminAdminNewsRoute
+  '/_admin/admin/plugins': typeof AdminAdminPluginsRoute
+  '/_admin/admin/products': typeof AdminAdminProductsRoute
+  '/_admin/admin/services': typeof AdminAdminServicesRoute
+  '/_admin/admin/settings': typeof AdminAdminSettingsRoute
+  '/_admin/admin/support': typeof AdminAdminSupportRoute
+  '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_admin/admin/users/$id': typeof AdminAdminUsersIdRoute
+  '/_admin/admin/users/': typeof AdminAdminUsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings'
+  fullPaths:
+    | '/'
+    | '/cart'
+    | '/dashboard'
+    | '/invoices'
+    | '/news'
+    | '/servers'
+    | '/services'
+    | '/settings'
+    | '/store'
+    | '/support'
+    | '/confirm-email'
+    | '/forgot-password'
+    | '/login'
+    | '/mfa'
+    | '/register'
+    | '/reset-password'
+    | '/admin/categories'
+    | '/admin/configurable-options'
+    | '/admin/coupons'
+    | '/admin/invoices'
+    | '/admin/news'
+    | '/admin/plugins'
+    | '/admin/products'
+    | '/admin/services'
+    | '/admin/settings'
+    | '/admin/support'
+    | '/admin/'
+    | '/admin/users/$id'
+    | '/admin/users/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings'
-  id: '__root__' | '/' | '/settings'
+  to:
+    | '/'
+    | '/cart'
+    | '/dashboard'
+    | '/invoices'
+    | '/news'
+    | '/servers'
+    | '/services'
+    | '/settings'
+    | '/store'
+    | '/support'
+    | '/confirm-email'
+    | '/forgot-password'
+    | '/login'
+    | '/mfa'
+    | '/register'
+    | '/reset-password'
+    | '/admin/categories'
+    | '/admin/configurable-options'
+    | '/admin/coupons'
+    | '/admin/invoices'
+    | '/admin/news'
+    | '/admin/plugins'
+    | '/admin/products'
+    | '/admin/services'
+    | '/admin/settings'
+    | '/admin/support'
+    | '/admin'
+    | '/admin/users/$id'
+    | '/admin/users'
+  id:
+    | '__root__'
+    | '/'
+    | '/_admin'
+    | '/_app'
+    | '/_auth'
+    | '/_app/cart'
+    | '/_app/dashboard'
+    | '/_app/invoices'
+    | '/_app/news'
+    | '/_app/servers'
+    | '/_app/services'
+    | '/_app/settings'
+    | '/_app/store'
+    | '/_app/support'
+    | '/_auth/confirm-email'
+    | '/_auth/forgot-password'
+    | '/_auth/login'
+    | '/_auth/mfa'
+    | '/_auth/register'
+    | '/_auth/reset-password'
+    | '/_admin/admin/categories'
+    | '/_admin/admin/configurable-options'
+    | '/_admin/admin/coupons'
+    | '/_admin/admin/invoices'
+    | '/_admin/admin/news'
+    | '/_admin/admin/plugins'
+    | '/_admin/admin/products'
+    | '/_admin/admin/services'
+    | '/_admin/admin/settings'
+    | '/_admin/admin/support'
+    | '/_admin/admin/'
+    | '/_admin/admin/users/$id'
+    | '/_admin/admin/users/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SettingsRoute: typeof SettingsRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -58,19 +413,311 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/cart': {
+      id: '/_app/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof AppCartRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices': {
+      id: '/_app/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/news': {
+      id: '/_app/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof AppNewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/servers': {
+      id: '/_app/servers'
+      path: '/servers'
+      fullPath: '/servers'
+      preLoaderRoute: typeof AppServersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/services': {
+      id: '/_app/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof AppServicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/store': {
+      id: '/_app/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof AppStoreRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/support': {
+      id: '/_app/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AppSupportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_auth/confirm-email': {
+      id: '/_auth/confirm-email'
+      path: '/confirm-email'
+      fullPath: '/confirm-email'
+      preLoaderRoute: typeof AuthConfirmEmailRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/mfa': {
+      id: '/_auth/mfa'
+      path: '/mfa'
+      fullPath: '/mfa'
+      preLoaderRoute: typeof AuthMfaRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_admin/admin/': {
+      id: '/_admin/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/categories': {
+      id: '/_admin/admin/categories'
+      path: '/admin/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminAdminCategoriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/configurable-options': {
+      id: '/_admin/admin/configurable-options'
+      path: '/admin/configurable-options'
+      fullPath: '/admin/configurable-options'
+      preLoaderRoute: typeof AdminAdminConfigurableOptionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/coupons': {
+      id: '/_admin/admin/coupons'
+      path: '/admin/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminAdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/invoices': {
+      id: '/_admin/admin/invoices'
+      path: '/admin/invoices'
+      fullPath: '/admin/invoices'
+      preLoaderRoute: typeof AdminAdminInvoicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/news': {
+      id: '/_admin/admin/news'
+      path: '/admin/news'
+      fullPath: '/admin/news'
+      preLoaderRoute: typeof AdminAdminNewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/plugins': {
+      id: '/_admin/admin/plugins'
+      path: '/admin/plugins'
+      fullPath: '/admin/plugins'
+      preLoaderRoute: typeof AdminAdminPluginsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/products': {
+      id: '/_admin/admin/products'
+      path: '/admin/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminAdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/services': {
+      id: '/_admin/admin/services'
+      path: '/admin/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminAdminServicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/settings': {
+      id: '/_admin/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminAdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/support': {
+      id: '/_admin/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminAdminSupportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/users/': {
+      id: '/_admin/admin/users/'
+      path: '/admin/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminAdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/users/$id': {
+      id: '/_admin/admin/users/$id'
+      path: '/admin/users/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AdminAdminUsersIdRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
 
+interface AdminRouteChildren {
+  AdminAdminCategoriesRoute: typeof AdminAdminCategoriesRoute
+  AdminAdminConfigurableOptionsRoute: typeof AdminAdminConfigurableOptionsRoute
+  AdminAdminCouponsRoute: typeof AdminAdminCouponsRoute
+  AdminAdminInvoicesRoute: typeof AdminAdminInvoicesRoute
+  AdminAdminNewsRoute: typeof AdminAdminNewsRoute
+  AdminAdminPluginsRoute: typeof AdminAdminPluginsRoute
+  AdminAdminProductsRoute: typeof AdminAdminProductsRoute
+  AdminAdminServicesRoute: typeof AdminAdminServicesRoute
+  AdminAdminSettingsRoute: typeof AdminAdminSettingsRoute
+  AdminAdminSupportRoute: typeof AdminAdminSupportRoute
+  AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminUsersIdRoute: typeof AdminAdminUsersIdRoute
+  AdminAdminUsersIndexRoute: typeof AdminAdminUsersIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminCategoriesRoute: AdminAdminCategoriesRoute,
+  AdminAdminConfigurableOptionsRoute: AdminAdminConfigurableOptionsRoute,
+  AdminAdminCouponsRoute: AdminAdminCouponsRoute,
+  AdminAdminInvoicesRoute: AdminAdminInvoicesRoute,
+  AdminAdminNewsRoute: AdminAdminNewsRoute,
+  AdminAdminPluginsRoute: AdminAdminPluginsRoute,
+  AdminAdminProductsRoute: AdminAdminProductsRoute,
+  AdminAdminServicesRoute: AdminAdminServicesRoute,
+  AdminAdminSettingsRoute: AdminAdminSettingsRoute,
+  AdminAdminSupportRoute: AdminAdminSupportRoute,
+  AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminUsersIdRoute: AdminAdminUsersIdRoute,
+  AdminAdminUsersIndexRoute: AdminAdminUsersIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface AppRouteChildren {
+  AppCartRoute: typeof AppCartRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppInvoicesRoute: typeof AppInvoicesRoute
+  AppNewsRoute: typeof AppNewsRoute
+  AppServersRoute: typeof AppServersRoute
+  AppServicesRoute: typeof AppServicesRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppStoreRoute: typeof AppStoreRoute
+  AppSupportRoute: typeof AppSupportRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppCartRoute: AppCartRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppInvoicesRoute: AppInvoicesRoute,
+  AppNewsRoute: AppNewsRoute,
+  AppServersRoute: AppServersRoute,
+  AppServicesRoute: AppServicesRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppStoreRoute: AppStoreRoute,
+  AppSupportRoute: AppSupportRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface AuthRouteChildren {
+  AuthConfirmEmailRoute: typeof AuthConfirmEmailRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthMfaRoute: typeof AuthMfaRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthConfirmEmailRoute: AuthConfirmEmailRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthMfaRoute: AuthMfaRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SettingsRoute: SettingsRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,9 +2,11 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { loadEnvFile } from "node:process";
 import { serve } from "@hono/node-server";
+import { assertDatabase, createDatabase } from "@fluxo/db";
 import { createLogger } from "@fluxo/logger";
 import { assertRedis, createRedis } from "@fluxo/redis";
 import { createApp } from "./app.js";
+import { createAuthServices } from "./auth/create-auth.js";
 import { loadEnv, type Env } from "./env.js";
 
 const rootEnvPath = path.resolve(import.meta.dirname, "../../../.env");
@@ -26,6 +28,19 @@ async function start(): Promise<void> {
     process.exit(1);
   }
 
+  if (env.SESSION_SECRET.length === 0) {
+    logger.error("SESSION_SECRET is required");
+    process.exit(1);
+  }
+
+  const database = createDatabase({ url: env.POSTGRES_URL });
+  try {
+    await assertDatabase(database);
+  } catch (error) {
+    logger.error(error instanceof Error ? error.message : "Postgres unavailable");
+    process.exit(1);
+  }
+
   const redis = createRedis({ url: env.REDIS_URL });
   try {
     await assertRedis(redis);
@@ -34,7 +49,14 @@ async function start(): Promise<void> {
     process.exit(1);
   }
 
-  const app = createApp({ logger, redis, corsOrigin: env.FRONTEND_URL });
+  const auth = await createAuthServices({ database, redis, env, logger });
+  const app = createApp({
+    logger,
+    redis,
+    postgres: database,
+    corsOrigin: env.FRONTEND_URL,
+    auth,
+  });
   serve({ fetch: app.fetch, port: env.PORT });
   logger.info("api listening", { port: env.PORT, name: env.APP_NAME });
 }

@@ -9,6 +9,7 @@ import {
   handleSettingsSet,
   resolveSettingsPath,
 } from "./settings.js";
+import { handleUserRole, updateUserRole } from "./user-role.js";
 
 function cliLogger() {
   return createLogger({
@@ -76,6 +77,38 @@ export const settingsCommand = defineCommand({
   },
 });
 
+export const userRoleCommand = defineCommand({
+  meta: {
+    name: "role",
+    description: "Set a user's role (user or admin)",
+  },
+  args: {
+    user: { type: "positional", required: false, description: "Username or email" },
+    role: { type: "positional", required: false, description: "Role: user or admin" },
+  },
+  async run({ args }) {
+    const result = await handleUserRole({
+      logger: cliLogger(),
+      user: args.user ? String(args.user) : undefined,
+      role: args.role ? String(args.role) : undefined,
+      updateRole: (user, role) => updateUserRole(user, role),
+    });
+    if (result.status === "error") {
+      process.exitCode = 1;
+    }
+  },
+});
+
+export const userCommand = defineCommand({
+  meta: {
+    name: "user",
+    description: "Manage Fluxo users",
+  },
+  subCommands: {
+    role: userRoleCommand,
+  },
+});
+
 export const main = defineCommand({
   meta: {
     name: "fluxo",
@@ -84,5 +117,6 @@ export const main = defineCommand({
   subCommands: {
     health: healthCommand,
     settings: settingsCommand,
+    user: userCommand,
   },
 });

@@ -11,3 +11,5 @@ coverage/
 storage/
 plugins/
 .DS_Store
+.tanstack/
+routeTree.gen.ts

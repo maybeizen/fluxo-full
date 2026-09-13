@@ -10,6 +10,8 @@ export default defineConfig([
     "**/.turbo/**",
     "**/coverage/**",
     "**/.vite/**",
+    "**/.tanstack/**",
+    "**/routeTree.gen.ts",
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,

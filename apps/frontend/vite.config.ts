@@ -4,8 +4,18 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+const workspaceRoot = path.resolve(import.meta.dirname, "../..");
+
 export default defineConfig({
-  envDir: path.resolve(import.meta.dirname, "../.."),
+  envDir: workspaceRoot,
+  server: {
+    fs: {
+      allow: [workspaceRoot],
+    },
+  },
+  optimizeDeps: {
+    exclude: ["@fluxo/types"],
+  },
   plugins: [
     tanstackRouter({
       target: "react",
@@ -17,6 +27,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
+      "@fluxo/types": path.resolve(workspaceRoot, "packages/types/src/index.ts"),
     },
   },
 });

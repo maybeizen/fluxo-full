@@ -1,0 +1,249 @@
+---
+description: Required hackable frontend — themes own presentation, the app owns behavior. Mandatory for every frontend change.
+globs: apps/frontend/**/*.{ts,tsx,css,json}
+alwaysApply: true
+---
+
+# Hackable Frontend (required)
+
+This is the **required design structure for all Fluxo frontend work**. Treat the SPA as a themeable platform, not a one-off UI. Do not invent a second theming API. Do not hardcode a look into `features/` or `routes/`. Do not scatter `if (theme === ...)` anywhere.
+
+This is **not** a redesign license. Preserve look, spacing, typography, color, motion, layout, copy, and interaction unless the user asked to change them. The default theme is the reference appearance.
+
+```
+Application (API, auth, state, logic)
+        ↓
+Theme system (catalog, resolver, registry, fallback)
+        ↓
+Active theme (components, layouts, CSS, assets, translations)
+```
+
+A theme author must be able to make a dramatically different UI **without copying business logic or the whole frontend**.
+
+## Core principle
+
+**Themes control presentation. The application core controls behavior and data.**
+
+```
+Application logic → hooks / services / state → page composition → useUI() → theme visuals
+```
+
+A theme must **never** copy a page just to restyle it. Replacing `UsersTable` or a future `ServerCard` must not reimplement fetching, auth, or permissions.
+
+```tsx
+const users = useAdminUsers();
+const { UsersTable } = useUI();
+return <UsersTable users={users} />;
+```
+
+```tsx
+export function Dashboard() {
+  const data = await fetch("/admin/users");
+  return <div className="my-theme-table">...</div>;
+}
+```
+
+Theme components receive **props and callbacks**. They may use local UI state, animation, and custom markup. They must not own API calls, session, guards, or query keys.
+
+## Where code lives
+
+Do not invent `src/core/`. The existing app core is `lib/`, `hooks/`, and `features/`.
+
+```
+apps/frontend/src/
+  theme-system/     catalog, Zod manifest, resolve, ThemeProvider, useUI, useT
+  themes/default/   reference implementation (current look)
+  themes/example/   override demo (extends default)
+  lib/  hooks/      auth-api, session, domain hooks
+  features/         composition only: hooks + useUI() / useT()
+  routes/           thin wrappers; no visual markup
+```
+
+New themes: `apps/frontend/src/themes/{id}/` with `theme.json` + `index.ts`.
+
+Organize by purpose. Adjust folders to real files — **never create empty directories**.
+
+```
+themes/{id}/
+  theme.json
+  index.ts
+  components/ui/
+  components/layout/
+  pages/{landing,auth,settings,admin}/
+  styles/           tokens.css, extra CSS
+  translations/en.json
+  assets/           only if real files live here
+```
+
+Do not dump every file in the theme root (`Button.tsx` next to `utils.ts` next to `Dashboard.tsx`).
+
+## Theme contract (one API — do not replace)
+
+`useUI()` is the only way to resolve visuals. Do not add `<ThemeComponent name="..." />`. Do not import `@/themes/default/...` or `@/themes/{id}/...` from `routes/` or `features/`.
+
+Theme files registered in `defaultComponents` must import hooks from the leaf modules. The `@/theme-system` barrel re-exports `ThemeProvider`, which loads the default theme and will leave registry entries `undefined` in the Vite graph.
+
+```ts
+import { useUI } from "@/theme-system/use-ui";
+import { useT, t } from "@/theme-system/use-t";
+import type { ThemeModule } from "@/theme-system";
+```
+
+Features and routes that are not imported by `themes/default/components.ts` may use the barrel.
+
+Every theme `index.ts` exports a `ThemeModule`:
+
+```ts
+{
+  manifest,                          // from theme.json
+  components?: Partial<UIComponents>,
+  translations?: Record<string, string>,
+}
+```
+
+`theme.json` (Zod: `themeManifestSchema`): required `id`, `name`, `version`. Optional `description`, `author`, `extends`. Keep the schema small; grow it only when a real need appears.
+
+**Catalog is the security boundary.** Register themes only in `theme-system/catalog.ts` as a static allowlist:
+
+```ts
+export const themeCatalog = {
+  default: () => import("@/themes/default"),
+  example: () => import("@/themes/example"),
+} as const;
+```
+
+Never `import(userString)`, `eval`, or `new Function`. Unknown ID, invalid manifest, failed import, or unknown/cyclic `extends` → log and use `default`. Never merge a broken theme into the live registry.
+
+Active theme resolution: public settings `activeThemeId` (catalog IDs only) → `VITE_PUBLIC_THEME` → `"default"`. `parseThemeId` + `Object.hasOwn(catalog, id)` only.
+
+Resolution: load module → validate manifest → if `extends`, load parent from the same catalog (one level; reject cycles) → `{ ...parent.components, ...child.components }` and the same for translations → fill remaining keys from `defaultComponents`.
+
+## Registry rules
+
+1. Core defines stable keys on `UIComponents` (`themes/default/components.ts`; `registry/defaults.ts` re-exports).
+2. Default theme provides every implementation.
+3. A child theme overrides **only** the keys it changes; the rest inherit.
+4. Theme components receive well-defined props. They do not fetch.
+5. Nested registered composites must come from `useUI()`, not a sibling file import — otherwise overrides are dead.
+6. Routes compose chrome through `useUI()` (`AuthLayout`, `AppShell`, page forms).
+
+When adding UI, **register it** if a theme should replace it (page forms, cards, shells, navbars). Keep primitives + **one form/card per surface**. Do not split every field into its own file.
+
+Nav **data** stays in the app (`app-nav.ts`, `admin-nav.ts`, `marketing-links.ts`). Pass items into theme chrome as props.
+
+## Logic vs presentation
+
+**Stay in the app:** routes, guards, `auth-api`, admin APIs, Zod request schemas, WebAuthn, query keys, validation, step-up, mutations, React Query, Zustand.
+
+**Stay in the theme:** markup, Tailwind/CSS, tokens, fonts, motion, layout, registered forms/cards/shells.
+
+Extract a hook when a file mixes `useMutation` / `fetch` with JSX. Theme form gets values, errors, and callbacks (`useLogin`, `useAccountMenu`, `useAdminUsers`, settings hooks, `useStepUpDialog`).
+
+Do not introduce a new state library. Do not blindly fragment components. Sensible boundaries, not maximum file count.
+
+## Themes are fully hackable (trusted JS)
+
+This is **Model B**: themes are trusted executable code in the same JS context. Authors may write arbitrary React/TypeScript — custom hooks, local state, animations, completely custom markup, extra CSS.
+
+Do **not** restrict themes to JSON config or CSS-only skins. Do **not** pretend to sandbox them.
+
+```tsx
+export function CustomNavbar(props: MarketingNavbarProps) {
+  const { MarketingNavbar } = useUI();
+  return (
+    <div data-theme="example">
+      <MarketingNavbar {...props} />
+    </div>
+  );
+}
+```
+
+Child themes override keys in `index.ts` the way `themes/example` does (`MarketingNavbar` + one translation). That is the template.
+
+## Avoid theme conditionals
+
+The app asks for a component by stable identity. The theme system resolves it.
+
+```tsx
+const { LoginForm } = useUI();
+return <LoginForm {...login} />;
+```
+
+```tsx
+if (theme === "cyberpunk") return <CyberpunkLogin />;
+import FooNavbar from "@/themes/foo/components/layout/Navbar";
+```
+
+No `theme ===` branches in features, routes, or hooks. No deep imports of a sibling theme file from another theme’s composites when that composite is registered — use `useUI()`.
+
+## Translations
+
+User-facing copy goes through `useT()` in render (or `t()` in event handlers). Do not bind `t` during render without `useT()` / `useSyncExternalStore`.
+
+Fallback: active theme → `themes/default/translations/en.json` → the key (never silent empty).
+
+```tsx
+const t = useT();
+return <h1>{t("dashboard.welcome", { name: user.name })}</h1>;
+```
+
+Interpolate with `{name}` vars. Render as React text. No `dangerouslySetInnerHTML` for `t()` output.
+
+Extract **visible product copy**. Do not invent new wording during refactors. Skip aria-only / developer strings unless shown in the UI. Do not mint a key for every tiny internal string.
+
+## Styling
+
+Keep Tailwind v4 + semantic tokens (`themes/default/styles/tokens.css`). Default theme `index.ts` side-effect imports that CSS.
+
+Themes may add their own CSS, fonts, assets, motion, and responsive rules via `index.ts` side-effect import. Do **not** force Tailwind-only on custom themes. Do **not** restyle the default theme “while you’re here.” Do not remove Tailwind without a concrete reason.
+
+## Inheritance
+
+`extends: "default"` (or another catalog id). One level is enough; reject cycles. Child merges over parent; unresolved keys fall back to default components.
+
+A custom theme should look like `themes/example`: manifest + the few files it changes. Never copy the default tree.
+
+If a theme wraps a parent component, compose via `useUI()` or the default export — never `if (themeId === ...)`.
+
+## Security (infrastructure, not a sandbox)
+
+Installing a theme means trusting its code. Document that. Harden the **loader**, not the theme runtime.
+
+- Validate `theme.json` with `themeManifestSchema`
+- Resolve IDs only via `Object.hasOwn(catalog, id)`
+- Deterministic fallback to default; do not merge broken modules
+- No path traversal, no runtime file paths from user input
+- No `eval` / `new Function` / string-as-JS
+- No unsafe HTML injection; sanitize only if HTML is ever user-controlled
+- `activeThemeId` must be a catalog id
+
+## Routing
+
+Routing, auth, authorization, and API stay in the app. Themes customize **page-level presentation and layouts** (`AuthLayout`, `AppShell`, registered page forms). Do not give themes route tables or plugin-style route registration.
+
+## Do not build
+
+Plugins (APIs, manifests, install, permissions, lifecycle, plugin routes). Theme marketplace. Runtime upload of theme JS. Replacing React. Removing Tailwind without cause. Duplicating the whole frontend into every theme. Placeholder pages for unfinished product surfaces. A giant generic abstraction that makes a simple button hard to read.
+
+Themes and plugins are **separate future concepts**. Do not shape the theme system so a later plugin system is impossible — and do not implement plugins now.
+
+## Preserve the stack
+
+Keep TanStack Router, Vite, Tailwind, React Query, Zustand, existing auth/session. Prefer existing patterns. Do not rewrite the API or unrelated backend to “make theming cleaner.”
+
+When adding a product surface, migrate only real pages. Do not invent theme pages for features that do not exist yet.
+
+## New feature checklist
+
+1. API + hooks in `lib/` / `hooks/` / `features/*/api.ts`.
+2. Visuals in `themes/default/` and new keys on `defaultComponents` / `UIComponents`.
+3. `features/` and `routes/` only call hooks + `useUI()` / `useT()`.
+4. User-facing strings in `themes/default/translations/en.json`.
+5. A second theme overrides only the new keys — no page copy.
+6. Nested composites inside the default theme also use `useUI()`.
+7. Tests assert behavior and exact existing copy. Do not require a visual redesign.
+8. Register a new catalog id only with a static `import()` in `catalog.ts`.
+
+## When changing the theme system itself
+
+One authoritative contract: catalog, manifest, `useUI`, `useT`, resolver. Do not let parallel work invent incompatible APIs. Prefer small composable changes. After a structural change, verify default appearance, one override theme, fallback on bad id/manifest, and existing frontend tests.

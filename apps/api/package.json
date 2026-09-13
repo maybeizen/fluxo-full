@@ -21,13 +21,18 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
+    "@fluxo/crypto": "workspace:*",
     "@fluxo/db": "workspace:*",
     "@fluxo/logger": "workspace:*",
     "@fluxo/redis": "workspace:*",
     "@fluxo/s3": "workspace:*",
     "@fluxo/types": "workspace:*",
     "@hono/node-server": "2.1.1",
+    "@simplewebauthn/server": "13.3.0",
+    "bcryptjs": "3.0.3",
+    "drizzle-orm": "0.45.2",
     "hono": "4.13.7",
+    "otpauth": "9.5.2",
     "zod": "catalog:"
   },
   "devDependencies": {
