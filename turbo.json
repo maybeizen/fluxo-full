@@ -1,0 +1,46 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "concurrency": "20",
+  "globalDependencies": [
+    ".env",
+    "**/.env.*local",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "tsconfig.base.json",
+    "**/tsconfig.json",
+    "**/tsconfig.*.json"
+  ],
+  "globalEnv": ["NODE_ENV", "TURBO_TEAM", "TURBO_TOKEN"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "start": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"]
+    },
+    "types": {
+      "dependsOn": ["^build"]
+    },
+    "format:check": {},
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

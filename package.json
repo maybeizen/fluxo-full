@@ -1,0 +1,27 @@
+{
+  "name": "fluxo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.27.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "types": "turbo run types",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@fluxo/config": "workspace:*",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}

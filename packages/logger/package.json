@@ -1,0 +1,36 @@
+{
+  "name": "@fluxo/logger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "types": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@fluxo/types": "workspace:*",
+    "chalk": "6.0.0",
+    "winston": "3.19.0"
+  },
+  "devDependencies": {
+    "@fluxo/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

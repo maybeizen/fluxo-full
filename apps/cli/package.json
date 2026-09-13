@@ -1,0 +1,40 @@
+{
+  "name": "@fluxo/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fluxo": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "types": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node dist/index.js",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@fluxo/logger": "workspace:*",
+    "@fluxo/types": "workspace:*",
+    "citty": "0.2.2"
+  },
+  "devDependencies": {
+    "@fluxo/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

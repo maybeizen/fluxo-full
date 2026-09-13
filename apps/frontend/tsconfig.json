@@ -1,0 +1,12 @@
+{
+  "extends": "@fluxo/config/typescript/react.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client", "node", "@testing-library/jest-dom"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

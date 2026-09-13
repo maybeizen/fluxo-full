@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  }
+}
