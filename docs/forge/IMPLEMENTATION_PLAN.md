@@ -140,15 +140,17 @@ Paths listed are **owned** by that group. Do not edit another group's files exce
 
 **Owns**
 
-- `apps/frontend/src/plugin-system/**` (new; catalog, registry, `usePluginSlot`)
+- `apps/frontend/src/plugin-system/**` (catalog, registry, `PluginSlot`, `usePluginExtensions`, `PluginSystemProvider`)
 - `apps/frontend/package.json` dependency on `@fluxo/forge` if importing constants/types
 - Slot mounts in **features** (not themes): e.g. `features/dashboard/dashboard-page.tsx`, `features/admin/admin-dashboard-page.tsx`, `features/admin/users/*`, `features/settings/settings-page.tsx`, `hooks/use-account-menu.ts` (append items from registry), `features/auth/login-page.tsx`
 
 **Does**
 
 - Register contributions by `PanelExtensionPoint` from `@fluxo/forge`
-- Pass extra nav/menu **data** into existing theme chrome as props
+- Pass extra nav/menu **data** and opaque slot **nodes** (`extraSections`, `extraActions`, `widgets`) into existing theme chrome as props
 - Static allowlist of frontend plugin modules (mirror theme catalog — no `import(userString)`)
+- Load the catalog from `PluginSystemProvider` next to app providers (not inside `theme-system`); filter with `setEnabledPluginIds`
+- Panel modules may call `useUI()` for Fluxo chrome; they must not deep-import `@/themes/...`
 
 **Does not**
 

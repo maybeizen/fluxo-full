@@ -1,14 +1,7 @@
 import type { PanelExtensionPoint } from "@fluxo/forge";
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { loadPanelPluginCatalog } from "./catalog";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { getPanelExtensions, panelExtensionRegistry } from "./registry";
 import type { RenderablePanelContribution } from "./types";
-
-let catalogLoad: Promise<void> | undefined;
-
-function ensurePanelPluginCatalog(): void {
-  catalogLoad ??= loadPanelPluginCatalog();
-}
 
 function sameExtensions(
   left: readonly unknown[],
@@ -32,9 +25,6 @@ export function usePluginExtensions<P extends PanelExtensionPoint>(
     panelExtensionRegistry.getSnapshot,
     panelExtensionRegistry.getSnapshot,
   );
-  useEffect(() => {
-    void ensurePanelPluginCatalog();
-  }, []);
   const override = options?.enabledPluginIds;
   const listed = useMemo(() => {
     void snapshot;

@@ -33,7 +33,7 @@ Workspace example packages (copy these; do not invent production Stripe or Ptero
 1. Create `plugins/{id}/` where `{id}` equals `plugin.json` `id` (canonical plugin id: lowercase dotted slugs).
 2. Add `plugin.json`, `package.json`, and `src/`. Authors may organize `src/` freely.
 3. Required manifest fields: `id`, `name`, `version`, `type`, `forgeApi` (semver range against `FORGE_API_VERSION`, currently `^0.1.0`), `entry`.
-4. Default-export a `defineServicePlugin` / `defineGatewayPlugin` / `definePanelPlugin` instance. Import **only** `@fluxo/forge` from plugin `entry` code. Do not import `@fluxo/db`, Prisma, `apps/api` services, or `theme-system`. Panel **React** widgets are not loaded from `plugin.json` `frontend`; they register through Fluxo's static SPA catalog (`apps/frontend/src/plugin-system/catalog.ts`) using `@/plugin-system` types (Fluxo app internals, not a published SDK).
+4. Default-export a `defineServicePlugin` / `defineGatewayPlugin` / `definePanelPlugin` instance. Import **only** `@fluxo/forge` from plugin `entry` code. Do not import `@fluxo/db`, Prisma, or `apps/api` services. Panel **React** widgets are not loaded from `plugin.json` `frontend`; they register through Fluxo's static SPA catalog (`apps/frontend/src/plugin-system/catalog.ts`) using `@/plugin-system` types (Fluxo app internals, not a published SDK). Those widgets may call `useUI()` / `useT()` for Fluxo chrome and must not deep-import `@/themes/...`.
 5. `entry` must be a relative path the loader can import (these examples use `src/index.ts`; Node `>=22.18` type-strips it. Drop-in plugins may use `dist/index.js` after `tsdown`).
 6. List only the `permissions` the plugin actually uses. Config in `plugin.json` is a schema, not secret values.
 

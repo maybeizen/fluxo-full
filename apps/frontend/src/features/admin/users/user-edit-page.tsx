@@ -65,18 +65,21 @@ export function UserEditPage({
   }
 
   return (
-    <>
-      <UserEditForm {...editor} user={editor.user} />
-      {actor ? (
-        <PluginSlot
-          point="admin.users.detailSection"
-          slotProps={{
-            user: toPluginUserView(actor),
-            targetUser: toPluginUserView(editor.user),
-            settings: toPluginPublicSettings(settings),
-          }}
-        />
-      ) : null}
-    </>
+    <UserEditForm
+      {...editor}
+      user={editor.user}
+      extraSections={
+        actor ? (
+          <PluginSlot
+            point="admin.users.detailSection"
+            slotProps={{
+              user: toPluginUserView(actor),
+              targetUser: toPluginUserView(editor.user),
+              settings: toPluginPublicSettings(settings),
+            }}
+          />
+        ) : null
+      }
+    />
   );
 }

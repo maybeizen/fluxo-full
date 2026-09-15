@@ -61,6 +61,20 @@ function isRenderableContribution(
   );
 }
 
+function sameContribution(
+  left: FrontendPanelContribution,
+  right: FrontendPanelContribution,
+): boolean {
+  return (
+    left.pluginId === right.pluginId &&
+    left.point === right.point &&
+    left.contributionId === right.contributionId &&
+    left.title === right.title &&
+    left.order === right.order &&
+    left.component === right.component
+  );
+}
+
 export interface PanelExtensionStore extends PanelExtensionRegistry {
   list(point?: PanelExtensionPoint): readonly FrontendPanelContribution[];
   register(contribution: PanelContribution | FrontendPanelContribution): void;
@@ -134,7 +148,7 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
         return;
       }
       const key = contributionKey(contribution);
-      contributions.set(key, {
+      const next: FrontendPanelContribution = {
         pluginId: contribution.pluginId,
         point: contribution.point,
         contributionId: contribution.contributionId,
@@ -142,7 +156,12 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
         order: contribution.order,
         component:
           "component" in contribution ? contribution.component : undefined,
-      });
+      };
+      const previous = contributions.get(key);
+      if (previous && sameContribution(previous, next)) {
+        return;
+      }
+      contributions.set(key, next);
       emit();
     },
     getEnabledPluginIds() {
@@ -188,6 +207,17 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
 
 export const panelExtensionRegistry = createPanelExtensionRegistry();
 
+let catalogLoad: Promise<void> | undefined;
+let catalogEpoch = 0;
+
+export function ensurePanelPluginCatalog(): Promise<void> {
+  const epoch = catalogEpoch;
+  catalogLoad ??= import("./catalog").then((mod) =>
+    mod.loadPanelPluginCatalog(undefined, () => epoch === catalogEpoch),
+  );
+  return catalogLoad;
+}
+
 export function registerPanelContribution<P extends PanelExtensionPoint>(
   contribution: RenderablePanelContribution<P>,
 ): void {
@@ -203,6 +233,8 @@ export function getEnabledPluginIds(): ReadonlySet<string> | null {
 }
 
 export function resetPanelExtensionRegistry(): void {
+  catalogEpoch += 1;
+  catalogLoad = undefined;
   panelExtensionRegistry.reset();
 }
 

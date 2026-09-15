@@ -5,7 +5,7 @@ Panel plugins contribute extra UI on **existing** Fluxo pages. They do not repla
 ```
 Application logic → hooks / services / state → page composition
   → useUI()            Fluxo chrome (theme)
-  → usePluginExtensions(point)   plugin contributions
+  → PluginSlot / usePluginExtensions(point)   plugin contributions (opaque nodes)
 ```
 
 ## Themes vs plugins
@@ -17,11 +17,11 @@ Application logic → hooks / services / state → page composition
 | Hook     | `useUI()` / `useT()`              | `usePluginExtensions(point)`       |
 | Replaces | Fluxo presentation                | nothing — adds UI at named points  |
 
-Do not register plugins in the theme catalog. Do not load panel modules with `import(userString)`. Do not put plugin fetching inside theme components.
+Do not register plugins in the theme catalog. Do not load panel modules with `import(userString)`. Do not put plugin fetching inside theme components. Themes receive **opaque React nodes** (`extraSections`, `extraActions`, `widgets`) and place them. Features own `PluginSlot` / `usePluginExtensions`.
 
 ## Trust
 
-Frontend plugin JS is **trusted code on Fluxo's origin** (same model as themes). Permissions in `plugin.json` are SDK checks on the host, not a browser sandbox. A panel module can call `useUI()`, `fetch`, or any browser API. Operators install only code they trust. There is no marketplace and no runtime upload of plugin JS.
+Frontend plugin JS is **trusted code on Fluxo's origin** (same model as themes). Permissions in `plugin.json` are SDK checks on the host, not a browser sandbox. A panel module may call `useUI()` for Fluxo chrome, `fetch`, or any browser API. It must not deep-import `@/themes/...`. Operators install only code they trust. There is no marketplace and no runtime upload of plugin JS.
 
 Do not inject plugin strings with `dangerouslySetInnerHTML`.
 
@@ -31,29 +31,34 @@ Do not inject plugin strings with `dangerouslySetInnerHTML`.
 
 - `register(contribution)` — host/test API; unknown points and invalid ids are ignored
 - `list(point?)` — all registered contributions, stable order (`order`, then `pluginId`, then `contributionId`)
-- Enabled plugin ids are a host filter (`setEnabledPluginIds`). `null` means every registered plugin is enabled. The SPA hook uses this filter.
+- Enabled plugin ids are a host filter (`setEnabledPluginIds`). `null` means every registered plugin is enabled. `PluginSlot` and `usePluginExtensions` use this filter.
 
-Until the API host feeds enabled ids, tests and local registration enable all registered plugins.
+`PluginSystemProvider` (mounted next to the app providers, not inside `theme-system`) loads the static catalog at bootstrap and then calls `setEnabledPluginIds`:
+
+- Admin session: `GET /admin/plugins` (enabled `type: "panel"` ids)
+- Login and authenticated clients: `GET /plugins/panel` (`{ pluginIds }` only — no secrets, no config)
+
+Until the API host feeds enabled ids, tests and local registration enable all registered plugins. `resetPanelExtensionRegistry` also clears the catalog-load singleton so tests and HMR can re-register.
 
 ## Wiring (existing surfaces only)
 
-| Point                                                            | Surface                                |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| `client.shell.accountMenu`                                       | Account menu (`useAccountMenu` extras) |
-| `client.dashboard.services` / `.invoices` / `.news` / `.support` | Dashboard tab panels                   |
-| `client.settings.section`                                        | Account settings                       |
-| `admin.dashboard.widget`                                         | Admin home                             |
-| `admin.nav.item`                                                 | Admin sidebar extras                   |
-| `admin.users.listAction`                                         | Users table row actions                |
-| `admin.users.detailSection`                                      | User edit page                         |
-| `admin.settings.section`                                         | Admin settings                         |
-| `auth.login.extra`                                               | Login card, after social actions       |
+| Point                                                            | Surface                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `client.shell.accountMenu`                                       | Account menu (`useAccountMenu` extras)                                   |
+| `client.dashboard.services` / `.invoices` / `.news` / `.support` | Dashboard tab panels                                                     |
+| `client.settings.section`                                        | Account settings `extraSections`                                         |
+| `admin.dashboard.widget`                                         | Admin home `widgets`                                                     |
+| `admin.nav.item`                                                 | Admin sidebar extras                                                     |
+| `admin.users.listAction`                                         | Users table `extraActions` (one `usePluginExtensions`, not per row)      |
+| `admin.users.detailSection`                                      | `UserEditForm` `extraSections` (theme places the slot)                   |
+| `admin.settings.section`                                         | Admin settings `extraSections`                                           |
+| `auth.login.extra`                                               | Login card, after social actions                                         |
 
 Each contribution is wrapped in an error boundary so one throwing widget does not crash the page.
 
 ## How a panel plugin registers a widget
 
-Use **only** `@fluxo/forge` types and `plugin-system` APIs. Do not import `@/themes/...`, Zustand stores, or `@fluxo/db`.
+Use **only** `@fluxo/forge` types and `plugin-system` APIs, plus `useUI()` / `useT()` from the theme-system **leaf** modules when you need Fluxo chrome. Do not import `@/themes/...`, Zustand stores, or `@fluxo/db`.
 
 1. Add a static catalog entry (allowlist, like themes):
 
@@ -86,9 +91,7 @@ export function register(api: PanelPluginRegistrationApi) {
 
 Contribution components receive typed host props (`PluginUserView`, `PluginPublicSettingsView`, and `targetUser` on user-admin points). They do not receive Prisma/Drizzle clients or internal stores.
 
-A drop-in panel package under `PLUGINS_DIR` can declare `contributions` in `plugin.json` for admin inspection. That does **not** load a React widget. `plugin.json` `frontend` is not imported at runtime. Third-party widgets require a first-party catalog PR (`panelPluginCatalog` + a module under `plugin-system/plugins/`). `@fluxo/forge` has no `register()` / `component` API.
-
-Host composition:
+Host composition — `PluginSlot` (subscribes once) or hoist `usePluginExtensions` when the theme maps per row:
 
 ```tsx
 const { AdminDashboard } = useUI();
@@ -105,3 +108,5 @@ return (
   </>
 );
 ```
+
+Pass the resulting nodes into theme chrome. Do not mount `PluginSlot` inside a per-row render prop.

@@ -28,27 +28,34 @@ function isPanelPluginModule(value: unknown): value is PanelPluginModule {
 
 export async function loadPanelPluginCatalog(
   catalog: ResolvablePanelCatalog = panelPluginCatalog as ResolvablePanelCatalog,
+  shouldApply?: () => boolean,
 ): Promise<void> {
-  await Promise.all(
-    Object.keys(catalog).map(async (id) => {
-      if (!Object.hasOwn(catalog, id) || !isPluginId(id)) {
-        return;
-      }
-      const loader = catalog[id];
+  const resolved =
+    catalog ?? (panelPluginCatalog as ResolvablePanelCatalog);
+  const ids = Object.keys(resolved).filter(
+    (id) => Object.hasOwn(resolved, id) && isPluginId(id),
+  );
+  const loaded = await Promise.all(
+    ids.map(async (id) => {
+      const loader = resolved[id];
       if (typeof loader !== "function") {
-        return;
+        return undefined;
       }
       try {
-        const loaded = await loader();
-        if (!isPanelPluginModule(loaded)) {
-          return;
-        }
-        if (typeof loaded.register === "function") {
-          loaded.register({ register: registerPanelContribution });
-        }
+        return await loader();
       } catch (error) {
         console.warn(`Failed to load panel plugin ${id}`, error);
+        return undefined;
       }
     }),
   );
+  if (shouldApply && !shouldApply()) {
+    return;
+  }
+  for (const module of loaded) {
+    if (!isPanelPluginModule(module) || typeof module.register !== "function") {
+      continue;
+    }
+    module.register({ register: registerPanelContribution });
+  }
 }

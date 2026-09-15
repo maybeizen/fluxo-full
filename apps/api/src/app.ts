@@ -14,6 +14,7 @@ import { authRoutes } from "./routes/auth.js";
 import { fileRoutes } from "./routes/files.js";
 import { forgeWebhookRoutes } from "./routes/forge-webhooks.js";
 import { healthRoutes } from "./routes/health.js";
+import { panelPluginPublicRoutes } from "./routes/panel-plugins.js";
 import { settingsPublicRoutes } from "./routes/settings.js";
 
 export type { AppBindings };
@@ -48,6 +49,7 @@ export function createApp(options: CreateAppOptions): Hono<AppBindings> {
   app.route("/files", fileRoutes(options.auth.storage));
   if (options.forge) {
     const forge = options.forge;
+    app.route("/plugins", panelPluginPublicRoutes({ persist: forge.persist }));
     app.route(
       "/admin",
       adminPluginRoutes({

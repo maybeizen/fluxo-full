@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   createMemoryHistory,
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
 import { routeTree } from "@/routeTree.gen";
@@ -193,5 +195,82 @@ describe("Admin users page", () => {
     expect(
       within(table).getByRole("button", { name: "Inspect ada" }),
     ).toBeInTheDocument();
+  });
+
+  it("omits disabled panel plugin list actions", async () => {
+    const admin = createUser({
+      id: "user-1",
+      username: "maya",
+      role: UserRole.Admin,
+    });
+    mockApiUrl();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/auth/me")) {
+          return jsonResponse({ user: admin });
+        }
+        if (url.endsWith("/admin/users")) {
+          return jsonResponse({
+            users: [
+              createListItem(),
+              createListItem({
+                id: "user-2",
+                username: "ada",
+                email: "ada@fluxo.test",
+                role: UserRole.User,
+              }),
+            ],
+          });
+        }
+        if (url.endsWith("/admin/plugins")) {
+          return jsonResponse({
+            plugins: [
+              {
+                id: "example-panel",
+                type: "panel",
+                enabled: true,
+              },
+            ],
+          });
+        }
+        if (url.endsWith("/plugins/panel")) {
+          return jsonResponse({ pluginIds: ["example-panel"] });
+        }
+        return jsonResponse({ error: "Not found" }, 404);
+      }),
+    );
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "admin.users.listAction",
+      contributionId: "impersonate",
+      component: ({ targetUser }) => (
+        <button type="button">Inspect {targetUser.username}</button>
+      ),
+    });
+
+    await renderUsers();
+
+    const table = await screen.findByRole("table");
+    await waitFor(() => {
+      expect(
+        within(table).queryByRole("button", { name: "Inspect maya" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(table).queryByRole("button", { name: "Inspect ada" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("subscribes to list action plugins once and passes opaque nodes", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "./users-page.tsx"),
+      "utf8",
+    );
+    expect(source).toContain('usePluginExtensions("admin.users.listAction")');
+    expect(source).toContain("PluginContributions");
+    expect(source).toContain("extraActions");
+    expect(source).not.toContain("PluginSlot");
   });
 });

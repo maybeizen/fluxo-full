@@ -152,4 +152,25 @@ describe("panel extension registry", () => {
     expect(registry.list("admin.dashboard.widget")).toHaveLength(1);
     expect(registry.list("admin.dashboard.widget")[0]?.title).toBe("New");
   });
+
+  it("does not notify listeners when the same contribution is registered again", () => {
+    const registry = createPanelExtensionRegistry();
+    let ticks = 0;
+    registry.subscribe(() => {
+      ticks += 1;
+    });
+    const contribution = {
+      pluginId: "acme.status",
+      point: "admin.dashboard.widget" as const,
+      contributionId: "uptime",
+      title: "Uptime",
+      component: Widget,
+    };
+    registry.register(contribution);
+    expect(ticks).toBe(1);
+    registry.register(contribution);
+    expect(ticks).toBe(1);
+    registry.register({ ...contribution, title: "Still uptime" });
+    expect(ticks).toBe(2);
+  });
 });

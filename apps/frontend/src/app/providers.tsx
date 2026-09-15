@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { usePublicSettings } from "@/hooks/use-public-settings";
+import { PluginSystemProvider } from "@/plugin-system/provider";
 import { ThemeProvider, useUI } from "@/theme-system";
 import type { UIOverrides } from "@/registry/types";
 
@@ -27,9 +28,11 @@ export function AppProviders({ children, components, themeId }: AppProvidersProp
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SettingsThemeBridge themeId={themeId} components={components}>
-        {children}
-      </SettingsThemeBridge>
+      <PluginSystemProvider>
+        <SettingsThemeBridge themeId={themeId} components={components}>
+          {children}
+        </SettingsThemeBridge>
+      </PluginSystemProvider>
     </QueryClientProvider>
   );
 }

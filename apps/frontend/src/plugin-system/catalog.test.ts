@@ -8,6 +8,7 @@ import {
   parsePanelPluginCatalogId,
 } from "./catalog";
 import {
+  ensurePanelPluginCatalog,
   panelExtensionRegistry,
   registerPanelContribution,
   resetPanelExtensionRegistry,
@@ -88,5 +89,33 @@ describe("panel plugin catalog", () => {
         title: "Example",
       }),
     ]);
+  });
+
+  it("reloads the catalog after a registry reset", async () => {
+    await ensurePanelPluginCatalog();
+    expect(panelExtensionRegistry.list("admin.dashboard.widget")).toHaveLength(
+      1,
+    );
+    resetPanelExtensionRegistry();
+    expect(panelExtensionRegistry.list("admin.dashboard.widget")).toHaveLength(
+      0,
+    );
+    await ensurePanelPluginCatalog();
+    expect(panelExtensionRegistry.list("admin.dashboard.widget")).toHaveLength(
+      1,
+    );
+  });
+
+  it("is bootstrapped from app providers, not the theme system", () => {
+    const providersSource = readFileSync(
+      resolve(import.meta.dirname, "../app/providers.tsx"),
+      "utf8",
+    );
+    const themeProviderSource = readFileSync(
+      resolve(import.meta.dirname, "../theme-system/provider.tsx"),
+      "utf8",
+    );
+    expect(providersSource).toContain("PluginSystemProvider");
+    expect(themeProviderSource).not.toMatch(/plugin-system/);
   });
 });

@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
 import { routeTree } from "@/routeTree.gen";
 import { UserRole } from "@/lib/auth";
+import { registerPanelContribution } from "@/plugin-system";
 import { createUser, jsonResponse, mockApiUrl } from "@/test/auth";
 import type { AdminUserDetail } from "../types";
 
@@ -147,5 +150,37 @@ describe("Admin user edit page", () => {
     );
     expect(screen.queryByText("You cannot remove your own admin role.")).not.toBeInTheDocument();
     expect(screen.queryByText("You cannot suspend your own account.")).not.toBeInTheDocument();
+  });
+
+  it("renders panel plugin detail sections through the theme form", async () => {
+    mockAdminApis(createDetail());
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "admin.users.detailSection",
+      contributionId: "notes",
+      component: ({ targetUser }) => <section>Notes for {targetUser.username}</section>,
+    });
+    await renderEdit("user-1");
+
+    expect(await screen.findByText("Notes for maya")).toBeInTheDocument();
+  });
+
+  it("passes the plugin slot into UserEditForm extraSections", () => {
+    const pageSource = readFileSync(
+      resolve(import.meta.dirname, "./user-edit-page.tsx"),
+      "utf8",
+    );
+    const formSource = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../../../themes/default/pages/admin/user-edit-form.tsx",
+      ),
+      "utf8",
+    );
+    expect(pageSource).toContain("extraSections");
+    expect(pageSource).toContain("UserEditForm");
+    expect(pageSource).toContain("PluginSlot");
+    expect(pageSource).toContain("admin.users.detailSection");
+    expect(formSource).toContain("extraSections");
   });
 });

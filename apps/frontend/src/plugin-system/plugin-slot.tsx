@@ -10,21 +10,49 @@ import { usePluginExtensions } from "./use-plugin-extensions";
 interface BoundaryProps {
   pluginId: string;
   contributionId: string;
+  component: unknown;
   children: ReactNode;
 }
 
 interface BoundaryState {
   failed: boolean;
+  pluginId: string;
+  contributionId: string;
+  component: unknown;
 }
 
 class PluginContributionBoundary extends Component<
   BoundaryProps,
   BoundaryState
 > {
-  override state: BoundaryState = { failed: false };
+  override state: BoundaryState = {
+    failed: false,
+    pluginId: "",
+    contributionId: "",
+    component: undefined,
+  };
 
-  static getDerivedStateFromError(): BoundaryState {
+  static getDerivedStateFromError(): Pick<BoundaryState, "failed"> {
     return { failed: true };
+  }
+
+  static getDerivedStateFromProps(
+    props: BoundaryProps,
+    state: BoundaryState,
+  ): BoundaryState | null {
+    if (
+      state.pluginId !== props.pluginId ||
+      state.contributionId !== props.contributionId ||
+      state.component !== props.component
+    ) {
+      return {
+        failed: false,
+        pluginId: props.pluginId,
+        contributionId: props.contributionId,
+        component: props.component,
+      };
+    }
+    return null;
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
@@ -43,21 +71,16 @@ class PluginContributionBoundary extends Component<
   }
 }
 
-export function PluginSlot<P extends PanelExtensionPoint>({
-  point,
+export function PluginContributions<P extends PanelExtensionPoint>({
   contributions,
   slotProps,
 }: {
-  point: P;
-  contributions?: readonly RenderablePanelContribution<P>[];
+  contributions: readonly RenderablePanelContribution<P>[];
   slotProps: PanelSlotProps<P>;
 }) {
-  const registered = usePluginExtensions(point);
-  const items = contributions ?? registered;
-
   return (
     <>
-      {items.map((entry) => {
+      {contributions.map((entry) => {
         const Contribution = entry.component;
         const props = {
           ...slotProps,
@@ -69,11 +92,30 @@ export function PluginSlot<P extends PanelExtensionPoint>({
             key={`${entry.pluginId}:${entry.contributionId}`}
             pluginId={entry.pluginId}
             contributionId={entry.contributionId}
+            component={Contribution}
           >
             <Contribution {...props} />
           </PluginContributionBoundary>
         );
       })}
     </>
+  );
+}
+
+export function PluginSlot<P extends PanelExtensionPoint>({
+  point,
+  contributions,
+  slotProps,
+}: {
+  point: P;
+  contributions?: readonly RenderablePanelContribution<P>[];
+  slotProps: PanelSlotProps<P>;
+}) {
+  const registered = usePluginExtensions(point);
+  return (
+    <PluginContributions
+      contributions={contributions ?? registered}
+      slotProps={slotProps}
+    />
   );
 }

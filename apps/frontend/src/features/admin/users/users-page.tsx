@@ -1,7 +1,8 @@
 import {
-  PluginSlot,
+  PluginContributions,
   toPluginPublicSettings,
   toPluginUserView,
+  usePluginExtensions,
 } from "@/plugin-system";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { useCreateUser } from "@/hooks/use-create-user";
@@ -31,6 +32,7 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
   const del = useDeleteUser();
   const settings = usePublicSettings();
   const session = useSession();
+  const listActions = usePluginExtensions("admin.users.listAction");
   const actor =
     session.data?.status === "authenticated" ? session.data.user : undefined;
 
@@ -76,8 +78,8 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
             extraActions={
               actor
                 ? (target) => (
-                    <PluginSlot
-                      point="admin.users.listAction"
+                    <PluginContributions
+                      contributions={listActions}
                       slotProps={{
                         user: toPluginUserView(actor),
                         targetUser: toPluginUserView(target),

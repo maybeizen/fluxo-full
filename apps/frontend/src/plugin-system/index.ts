@@ -9,9 +9,11 @@ export {
   toPluginUserView,
   usePanelHostContext,
 } from "./context";
-export { PluginSlot } from "./plugin-slot";
+export { PluginContributions, PluginSlot } from "./plugin-slot";
+export { PluginSystemProvider } from "./provider";
 export {
   createPanelExtensionRegistry,
+  ensurePanelPluginCatalog,
   getEnabledPluginIds,
   getPanelExtensions,
   isContributionId,
