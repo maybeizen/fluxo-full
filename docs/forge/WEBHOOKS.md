@@ -28,8 +28,7 @@ app.route(
     persist,
     getGatewayPlugin: (pluginId) => gatewaysPluginLookup(pluginId),
     isPluginActive: (pluginId) => manager.getActive(pluginId) !== undefined,
-    createContext: (pluginId, instanceId) =>
-      createPluginContext(pluginId, instanceId),
+    gateways,
     logger,
     listWebhookHandlers: (pluginId) => gateways.listWebhookHandlers(pluginId),
   }),
@@ -42,17 +41,19 @@ Allowed methods: `GET`, `POST`, `PUT`. Handler names must match `isSafeWebhookNa
 
 ## Controls
 
-| Control                          | Behavior                                                                                                 |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Plugin id                        | `parsePluginId` — traversal, `__proto__`, paths, uppercase rejected (400)                                |
-| Missing / disabled / not started | 404 `forge_not_found`                                                                                    |
-| Body size                        | `FORGE_WEBHOOK_MAX_BODY_BYTES` (256 KiB) via Hono `bodyLimit` (413)                                      |
-| Parsing                          | Raw `Uint8Array` only. Host does not `eval`, `new Function`, or `JSON.parse` the body                    |
-| Request id                       | Hono `requestId` middleware; `X-Request-Id` on the response; copied into plugin headers                  |
-| Logging                          | Method, path ids, handler, status, byte length, request id. **No raw body, no auth headers, no secrets** |
-| Errors                           | Plugin throw → 500 `{ error, code }` Forge body, no stack                                                |
+| Control                          | Behavior                                                                                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plugin id                        | `parsePluginId` — traversal, `__proto__`, paths, uppercase rejected (400)                                                                       |
+| Missing / disabled / not started | 404 `forge_not_found`                                                                                                                           |
+| Body size                        | `FORGE_WEBHOOK_MAX_BODY_BYTES` (256 KiB) via Hono `bodyLimit` (413)                                                                             |
+| Parsing                          | Raw `Uint8Array` only. Host does not `eval`, `new Function`, or `JSON.parse` the body                                                           |
+| Request id                       | Hono `requestId` middleware; `X-Request-Id` on the response; copied into plugin headers                                                         |
+| Logging                          | Method, path ids, handler, status, byte length, request id. **No raw body, no auth headers, no secrets**                                        |
+| Errors                           | Plugin throw → 500 `{ error, code }` Forge body, no stack                                                                                       |
 | Rate limit                       | In-process sliding window per connection IP+path (`FORGE_WEBHOOK_RATE_LIMIT_MAX` / minute). Client `X-Forwarded-For` / `X-Real-IP` are ignored. |
-| Signatures                       | Plugin-side using instance secrets from `ctx.config.getSecret`                                           |
+| Signatures                       | Plugin-side using instance secrets from `ctx.config.getSecret`                                                                                  |
+
+After path, plugin, instance, allowlist, and rate-limit checks, the HTTP route calls `gateways.handleWebhook` so `payment.completed` / `payment.failed` / `payment.refunded` emit from the same registry path as in-process webhook handling.
 
 Idempotency: the host passes request identity (`x-request-id`) to the plugin. It does not keep a payment ledger. Fluxo is **not** a PSP: webhook `payment.status` must not grant entitlements until a future journal exists.
 

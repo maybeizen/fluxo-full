@@ -10,7 +10,6 @@ import {
   parsePluginId,
   parseWebhookName,
   type FluxoGatewayPlugin,
-  type PluginContext,
   type PluginWebhookMethod,
   type PluginWebhookRequest,
   type PluginWebhookResult,
@@ -21,7 +20,13 @@ import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { listDeclaredWebhookHandlers } from "../forge/gateway-registry.js";
+import {
+  GatewayInstanceDisabledError,
+  GatewayNotFoundError,
+  GatewayPluginDisabledError,
+  listDeclaredWebhookHandlers,
+  type FluxoGatewayRegistry,
+} from "../forge/gateway-registry.js";
 import type { PluginPersist } from "../forge/persist.js";
 
 export const FORGE_WEBHOOK_MAX_BODY_BYTES = 256 * 1024;
@@ -51,10 +56,7 @@ export interface ForgeWebhookRouteDeps {
   persist: PluginPersist;
   getGatewayPlugin(pluginId: string): FluxoGatewayPlugin | undefined;
   isPluginActive(pluginId: string): boolean;
-  createContext(
-    pluginId: string,
-    instanceId?: string,
-  ): PluginContext | Promise<PluginContext>;
+  gateways: Pick<FluxoGatewayRegistry, "handleWebhook">;
   logger: FluxoLogger;
   listWebhookHandlers?(
     pluginId: string,
@@ -196,40 +198,30 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
         requestIdValue,
       );
 
-      const ctx = await deps.createContext(pluginId, instanceId);
       let result: PluginWebhookResult;
       try {
-        result = await handleWebhook.call(plugin, ctx, webhookRequest);
+        result = await deps.gateways.handleWebhook(pluginId, webhookRequest);
       } catch (error) {
-        if (error instanceof ForgeError) {
-          logWebhook(deps.logger, {
-            requestId: requestIdValue,
-            method,
-            pluginId,
-            instanceId,
-            handler,
-            status: error.status,
-            errorName: error.name,
-          });
-          return jsonForgeError(c, error, requestIdValue);
-        }
-        ctx.logger.error("gateway webhook plugin threw", {
-          pluginId,
-          instanceId,
-          handler,
-          requestId: requestIdValue,
-          errorName: error instanceof Error ? error.name : "unknown",
-        });
+        const mapped = mapWebhookDispatchError(error);
         logWebhook(deps.logger, {
           requestId: requestIdValue,
           method,
           pluginId,
           instanceId,
           handler,
-          status: 500,
+          status: mapped.status,
           errorName: error instanceof Error ? error.name : "unknown",
         });
-        return jsonForgeError(c, WEBHOOK_FAILED, requestIdValue);
+        if (mapped === WEBHOOK_FAILED && !(error instanceof ForgeError)) {
+          deps.logger.error("gateway webhook dispatch threw", {
+            pluginId,
+            instanceId,
+            handler,
+            requestId: requestIdValue,
+            errorName: error instanceof Error ? error.name : "unknown",
+          });
+        }
+        return jsonForgeError(c, mapped, requestIdValue);
       }
 
       const status = asResponseStatus(result.status);
@@ -261,6 +253,23 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
   );
 
   return routes;
+}
+
+function mapWebhookDispatchError(error: unknown): ForgeError {
+  if (
+    error instanceof GatewayNotFoundError ||
+    error instanceof GatewayPluginDisabledError ||
+    error instanceof GatewayInstanceDisabledError
+  ) {
+    return NOT_FOUND;
+  }
+  if (error instanceof ForgeError) {
+    if (error.code === "forge_gateway") {
+      return WEBHOOK_FAILED;
+    }
+    return error;
+  }
+  return WEBHOOK_FAILED;
 }
 
 async function resolveHandlerNames(

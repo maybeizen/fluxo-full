@@ -10,7 +10,12 @@ import {
 } from "@fluxo/forge";
 import type { FluxoLogger } from "@fluxo/logger";
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  createForgeEventBus,
+  setActiveForgeEventBus,
+} from "../forge/events.js";
+import { createGatewayRegistry } from "../forge/gateway-registry.js";
 import { createMemoryPluginPersist } from "../forge/persist.js";
 import {
   FORGE_WEBHOOK_MAX_BODY_BYTES,
@@ -175,24 +180,35 @@ async function setup(options?: {
           capture: options?.capture,
         })
       : options.plugin;
+  const isPluginActive = () => options?.active ?? true;
+  const getGatewayPlugin = () => plugin;
+  const gateways = createGatewayRegistry({
+    persist,
+    getGatewayPlugin,
+    isPluginActive,
+    createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+  });
   const app = new Hono();
   app.route(
     FORGE_WEBHOOK_PATH_PREFIX,
     forgeWebhookRoutes({
       persist,
-      getGatewayPlugin: () => plugin,
-      isPluginActive: () => options?.active ?? true,
-      createContext: (pluginId, instanceId) =>
-        fakeContext(pluginId, instanceId),
+      getGatewayPlugin,
+      isPluginActive,
+      gateways,
       logger,
       rateLimitMax: options?.rateLimitMax,
       rateLimitWindowMs: options?.rateLimitWindowMs,
     }),
   );
-  return { app, persist, logger, plugin };
+  return { app, persist, logger, plugin, gateways };
 }
 
 describe("forgeWebhookRoutes", () => {
+  afterEach(() => {
+    setActiveForgeEventBus(undefined);
+  });
+
   it("rejects path traversal in pluginId", async () => {
     const { app } = await setup();
     const attempts = [
@@ -397,6 +413,37 @@ describe("forgeWebhookRoutes", () => {
         code: "forge_webhook",
       });
     }
+  });
+
+  it("emits payment.completed when an HTTP webhook completes a payment", async () => {
+    const bus = createForgeEventBus();
+    const completed = vi.fn();
+    bus.on("payment.completed", completed);
+    setActiveForgeEventBus(bus);
+
+    const { app, gateways } = await setup();
+    const checkout = await gateways.createCheckout({
+      idempotencyKey: "idem-http-1",
+      instanceId: INSTANCE_A,
+      invoiceId: "inv_1",
+      amount: { amount: 1999, currency: "USD" },
+      customer: { userId: "user_1", email: "ada@example.com" },
+      returnUrl: "https://app.example/return",
+      cancelUrl: "https://app.example/cancel",
+    });
+    completed.mockClear();
+
+    const response = await app.request(
+      forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+      { method: "POST", body: "{}" },
+    );
+    expect(response.status).toBe(200);
+    expect(checkout.checkoutId).toBe("chk_1");
+    expect(completed).toHaveBeenCalledWith({
+      paymentId: "chk_1",
+      invoiceId: "inv_1",
+      amount: { amount: 1999, currency: "USD" },
+    });
   });
 
   it("does not treat X-Forwarded-For as distinct rate-limit buckets", async () => {

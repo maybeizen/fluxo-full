@@ -75,7 +75,7 @@ Session and auth login/logout events are not yet wired from session issue/destro
 app.route(FORGE_WEBHOOK_PATH_PREFIX, forgeWebhookRoutes(deps));
 ```
 
-`index.ts` passes the host from `startForge`. Deps use `host.persist`, `host.manager.getActive`, `host.createContext`, and `host.gateways.listWebhookHandlers`. Paths are `/forge/webhooks/{pluginId}/{instanceId}/{handler}`. Enabled+started gateway plugins with `handleWebhook` are served; missing, disabled, or inactive plugins 404.
+`index.ts` passes the host from `startForge`. Deps use `host.persist`, `host.manager.getActive`, `host.gateways.handleWebhook`, and `host.gateways.listWebhookHandlers`. Paths are `/forge/webhooks/{pluginId}/{instanceId}/{handler}`. HTTP still 404s missing, disabled, or inactive plugins after path/allowlist/rate-limit checks, then dispatches through the gateway registry so `payment.*` events fire.
 
 ## Admin plugins
 

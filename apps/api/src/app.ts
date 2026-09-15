@@ -70,8 +70,7 @@ export function createApp(options: CreateAppOptions): Hono<AppBindings> {
           asGatewayPlugin(forge.manager.getActive(pluginId)),
         isPluginActive: (pluginId) =>
           forge.manager.getActive(pluginId) !== undefined,
-        createContext: (pluginId, instanceId) =>
-          forge.createContext(pluginId, instanceId),
+        gateways: forge.gateways,
         logger: options.logger,
         listWebhookHandlers: (pluginId) =>
           forge.gateways.listWebhookHandlers(pluginId),
