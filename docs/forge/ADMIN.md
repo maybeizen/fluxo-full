@@ -1,6 +1,6 @@
 # Admin plugin inspection
 
-Group G owns the admin inspection API and plugins page. Routes are **not** mounted in `apps/api/src/app.ts` yet.
+Group G owns the admin inspection API and plugins page. Routes are mounted in `apps/api/src/app.ts` when `createApp` receives `forge`.
 
 ## Mount
 
@@ -27,7 +27,7 @@ Same guards as other admin APIs: `requireSession` then `requireAdmin`. Unauthent
 
 ## HTTP
 
-Mounted at `/admin` (once the one-liner is added):
+Mounted at `/admin`:
 
 | Method | Path | Action |
 | --- | --- | --- |

@@ -64,3 +64,23 @@ app.route(FORGE_WEBHOOK_PATH_PREFIX, forgeWebhookRoutes(deps));
 ```
 
 `index.ts` passes the host from `startForge`. Deps use `host.persist`, `host.manager.getActive`, `host.createContext`, and `host.gateways.listWebhookHandlers`. Paths are `/forge/webhooks/{pluginId}/{instanceId}/{handler}`. Enabled+started gateway plugins with `handleWebhook` are served; missing, disabled, or inactive plugins 404.
+
+## Admin plugins
+
+The same `if (options.forge)` block mounts Group G at `/admin` (alongside existing `/admin/users` and `/admin/settings`):
+
+```ts
+app.route(
+  "/admin",
+  adminPluginRoutes({
+    sessions: auth.sessions,
+    users: auth.users,
+    passkeys: auth.passkeys,
+    persist: forge.persist,
+    manager: forge.manager,
+    createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+  }),
+);
+```
+
+List is `GET /admin/plugins`. Detail, enable, disable, uninstall, config, health, and instances live under `/admin/plugins/:pluginId`. Unauthenticated 401; non-admin 403.

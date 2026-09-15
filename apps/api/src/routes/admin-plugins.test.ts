@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import path from "node:path";
 import type { FluxoLogger } from "@fluxo/logger";
 import {
   FORGE_API_VERSION,
@@ -7,11 +9,13 @@ import {
 } from "@fluxo/forge";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
+import { createApp } from "../app.js";
 import { createMemoryAuth } from "../auth/stores/memory.js";
 import {
   createAdminPluginService,
   type AdminPluginManager,
 } from "../forge/admin-plugins.js";
+import { createForgeHost } from "../forge/host.js";
 import { createMemoryPluginPersist } from "../forge/persist.js";
 import { errorHandler } from "../middleware/error.js";
 import { authRoutes } from "./auth.js";
@@ -437,5 +441,69 @@ describe("createAdminPluginService", () => {
       discovered: true,
       enabled: false,
     });
+  });
+});
+
+function setupMountedApp() {
+  const auth = createMemoryAuth();
+  const persist = createMemoryPluginPersist();
+  const logger = mockLogger();
+  const forge = createForgeHost({
+    persist,
+    logger,
+    pluginsDir: path.join(tmpdir(), "fluxo-forge-admin-plugins-empty"),
+  });
+  const app = createApp({
+    logger,
+    redis: { ping: async () => "PONG" },
+    postgres: { ping: async () => undefined },
+    corsOrigin: "http://localhost:5173",
+    auth,
+    forge,
+  });
+  return { app, persist, ...auth };
+}
+
+describe("mounted admin plugins api", () => {
+  it("requires an admin session", async () => {
+    const { app } = setupMountedApp();
+    const anonymous = await app.request("/admin/plugins");
+    expect(anonymous.status).toBe(401);
+    expect(await anonymous.json()).toEqual({ error: "Unauthorized" });
+
+    await register(app);
+    await register(app, { username: "bob", email: "bob@example.com" });
+    const memberLogin = await login(app, { username: "bob" });
+    const member = await app.request("/admin/plugins", {
+      headers: { cookie: sessionCookie(memberLogin) },
+    });
+    expect(member.status).toBe(403);
+    expect(await member.json()).toEqual({ error: "Forbidden" });
+  });
+
+  it("lists installed plugins", async () => {
+    const { app, persist } = setupMountedApp();
+    await seedMail(persist);
+    await register(app);
+    const loggedIn = await login(app);
+    const cookie = sessionCookie(loggedIn);
+
+    const response = await app.request("/admin/plugins", {
+      headers: { cookie },
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      plugins: Array<{ id: string; name: string; enabled: boolean }>;
+    };
+    expect(body.plugins).toEqual([
+      expect.objectContaining({
+        id: "acme.mail",
+        name: "Mail",
+        enabled: true,
+      }),
+    ]);
+
+    const users = await app.request("/admin/users", { headers: { cookie } });
+    expect(users.status).toBe(200);
   });
 });

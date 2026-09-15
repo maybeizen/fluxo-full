@@ -9,6 +9,7 @@ import { asGatewayPlugin, type ForgeHost } from "./forge/host.js";
 import { errorHandler } from "./middleware/error.js";
 import { requestLogger } from "./middleware/logger.js";
 import { adminRoutes } from "./routes/admin.js";
+import { adminPluginRoutes } from "./routes/admin-plugins.js";
 import { authRoutes } from "./routes/auth.js";
 import { fileRoutes } from "./routes/files.js";
 import { forgeWebhookRoutes } from "./routes/forge-webhooks.js";
@@ -47,6 +48,17 @@ export function createApp(options: CreateAppOptions): Hono<AppBindings> {
   app.route("/files", fileRoutes(options.auth.storage));
   if (options.forge) {
     const forge = options.forge;
+    app.route(
+      "/admin",
+      adminPluginRoutes({
+        sessions: auth.sessions,
+        users: auth.users,
+        passkeys: auth.passkeys,
+        persist: forge.persist,
+        manager: forge.manager,
+        createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+      }),
+    );
     app.route(
       FORGE_WEBHOOK_PATH_PREFIX,
       forgeWebhookRoutes({
