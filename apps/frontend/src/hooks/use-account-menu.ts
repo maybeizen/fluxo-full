@@ -14,8 +14,6 @@ import { isAdminPath } from "@/components/layout/admin-nav";
 import { useSession } from "@/hooks/use-session";
 import { logout } from "@/lib/auth-api";
 import { authMeQueryKey, isAdminRole, type PublicUser } from "@/lib/auth";
-import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
-import { usePublicSettings } from "@/hooks/use-public-settings";
 import { useT } from "@/theme-system/use-t";
 
 export interface AccountMenuItem {
@@ -38,7 +36,6 @@ export function useAccountMenu(): AccountMenu {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const session = useSession();
-  const settings = usePublicSettings();
   const user = session.data?.status === "authenticated" ? session.data.user : undefined;
   const inAdmin = isAdminPath(pathname);
 
@@ -74,15 +71,6 @@ export function useAccountMenu(): AccountMenu {
   return {
     user,
     items,
-    extraItems: user ? (
-      <PluginSlot
-        point="client.shell.accountMenu"
-        slotProps={{
-          user: toPluginUserView(user),
-          settings: toPluginPublicSettings(settings),
-        }}
-      />
-    ) : undefined,
     onSignOut: () => {
       void handleSignOut();
     },

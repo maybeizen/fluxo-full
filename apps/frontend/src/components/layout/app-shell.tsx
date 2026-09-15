@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { appNavItems, crumbsForPath, homePathFor, type SidebarNavItem } from "@/components/layout/app-nav";
 import { useAccountMenu } from "@/hooks/use-account-menu";
 import { usePublicSettings } from "@/hooks/use-public-settings";
+import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
 import { useUI } from "@/theme-system";
 
 export interface AppShellProps {
@@ -16,12 +17,21 @@ export function AppShell({ children, navItems = appNavItems, extraNav }: AppShel
   const accountMenu = useAccountMenu();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const settings = usePublicSettings();
+  const extraItems = accountMenu.user ? (
+    <PluginSlot
+      point="client.shell.accountMenu"
+      slotProps={{
+        user: toPluginUserView(accountMenu.user),
+        settings: toPluginPublicSettings(settings),
+      }}
+    />
+  ) : undefined;
 
   return (
     <ThemeAppShell
       navItems={navItems}
       extraNav={extraNav}
-      accountMenu={accountMenu}
+      accountMenu={{ ...accountMenu, extraItems }}
       crumbs={crumbsForPath(pathname)}
       homeTo={homePathFor(pathname)}
     >
