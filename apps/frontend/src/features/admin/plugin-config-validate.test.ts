@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PluginConfigField } from "@fluxo/forge";
-import { validatePluginConfigDraft } from "./validate-config";
+import { validatePluginConfigDraft } from "./plugins/validate-config";
 
 const schema: PluginConfigField[] = [
   { key: "host", type: "text", label: "Host", required: true, minLength: 1 },

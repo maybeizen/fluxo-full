@@ -1,4 +1,5 @@
 import {
+  PLUGIN_PERMISSIONS,
   pluginConfigFieldSchema,
   jsonValueSchema,
   type JsonValue,
@@ -23,7 +24,7 @@ export const adminPluginListItemSchema: z.ZodType<AdminPluginListItem> = z.objec
   description: z.string().optional(),
   author: z.string().optional(),
   forgeApi: z.string(),
-  permissions: z.array(z.string()),
+  permissions: z.array(z.enum(PLUGIN_PERMISSIONS)),
   status: lifecycleSchema,
   error: z.string().optional(),
   instanceCount: z.number(),

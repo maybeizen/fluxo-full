@@ -5,7 +5,7 @@ import { AppProviders } from "@/app/providers";
 import { routeTree } from "@/routeTree.gen";
 import { UserRole } from "@/lib/auth";
 import { createUser, jsonResponse, mockApiUrl } from "@/test/auth";
-import type { AdminPluginDetail } from "./types";
+import type { AdminPluginDetail } from "./plugins/types";
 
 const SECRET = "tok_live_must_not_render";
 

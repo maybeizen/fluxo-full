@@ -129,15 +129,6 @@ export function createAdminPluginService(
     return { id, view, install, definition };
   }
 
-  async function requireInstall(pluginId: string): Promise<PluginInstallRow> {
-    const id = parsePluginId(pluginId);
-    const install = await persist.getInstall(id);
-    if (!install) {
-      throw new ForgeNotFoundError(`plugin ${id}`);
-    }
-    return install;
-  }
-
   async function requireOwnedInstance(pluginId: string, instanceId: string) {
     const id = parsePluginId(pluginId);
     await requireView(id);

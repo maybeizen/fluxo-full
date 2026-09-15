@@ -62,4 +62,4 @@ Theme keys: `AdminPluginsPage`, `AdminPluginsTable`, `AdminPluginDetailPage`, `A
 
 Installing a plugin is trusted executable code (same as an API npm dependency). That notice is on the list page.
 
-Root `.gitignore` has `plugins/`, so frontend files under `features/admin/plugins/`, `themes/default/pages/admin/plugins/`, and `routes/_admin/admin/plugins/` must be `git add -f`'d. Do not broaden that ignore; it is the runtime drop folder for built plugin packages.
+Root `.gitignore` has `plugins/`, so frontend sources under `features/admin/plugins/`, `themes/default/pages/admin/plugins/`, and `routes/_admin/admin/plugins/` must be `git add -f`'d. Vitest skips gitignored paths, so plugin admin tests live next to the other admin tests (`plugins-page.test.tsx`, `plugin-detail-page.test.tsx`, `plugin-config-validate.test.ts`). Do not broaden that ignore; it is the runtime drop folder for built plugin packages.

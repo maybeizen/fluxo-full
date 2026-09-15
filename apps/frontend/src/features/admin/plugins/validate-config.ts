@@ -131,8 +131,9 @@ export function validatePluginConfigDraft(
           errors.push({ key: field.key, label: field.label, code: "type" });
           break;
         }
+        const selected = raw.filter((item): item is string => typeof item === "string");
         const allowed = new Set(field.options.map((option) => option.value));
-        if (raw.some((item) => !allowed.has(item))) {
+        if (selected.some((item) => !allowed.has(item))) {
           errors.push({ key: field.key, label: field.label, code: "option" });
         }
         break;

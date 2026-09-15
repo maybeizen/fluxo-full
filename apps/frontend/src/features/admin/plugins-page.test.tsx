@@ -5,7 +5,7 @@ import { AppProviders } from "@/app/providers";
 import { routeTree } from "@/routeTree.gen";
 import { UserRole } from "@/lib/auth";
 import { createUser, jsonResponse, mockApiUrl } from "@/test/auth";
-import type { AdminPluginListItem } from "./types";
+import type { AdminPluginListItem } from "./plugins/types";
 
 function createPlugin(overrides: Partial<AdminPluginListItem> = {}): AdminPluginListItem {
   return {
