@@ -1,6 +1,9 @@
+import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { useCreateUser } from "@/hooks/use-create-user";
 import { useDeleteUser } from "@/hooks/use-delete-user";
+import { usePublicSettings } from "@/hooks/use-public-settings";
+import { useSession } from "@/hooks/use-session";
 import { useT, useUI } from "@/theme-system";
 
 export function UsersPage({ currentUserId }: { currentUserId: string }) {
@@ -22,6 +25,9 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
   const users = useAdminUsers();
   const create = useCreateUser();
   const del = useDeleteUser();
+  const settings = usePublicSettings();
+  const session = useSession();
+  const actor = session.data?.status === "authenticated" ? session.data.user : undefined;
 
   return (
     <Card>
@@ -58,6 +64,20 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
             currentUserId={currentUserId}
             deletingId={del.pendingId}
             onDelete={del.onDelete}
+            extraActions={
+              actor
+                ? (target) => (
+                    <PluginSlot
+                      point="admin.users.listAction"
+                      slotProps={{
+                        user: toPluginUserView(actor),
+                        targetUser: toPluginUserView(target),
+                        settings: toPluginPublicSettings(settings),
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         ) : null}
       </CardContent>

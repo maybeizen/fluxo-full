@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/rea
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
+import { registerPanelContribution } from "@/plugin-system";
 import { defaultComponents } from "@/registry/defaults";
 import type { UIComponents, UIOverrides } from "@/registry/types";
 import { routeTree } from "@/routeTree.gen";
@@ -110,6 +111,7 @@ describe("Dashboard page", () => {
     const source = readFileSync(resolve(import.meta.dirname, "./dashboard-page.tsx"), "utf8");
     expect(source).toContain("useUI");
     expect(source).toContain("DashboardPage: View");
+    expect(source).toContain("PluginSlot");
     expect(source).not.toMatch(/@\/themes\//);
     expect(defaultComponents.DashboardPage).toBeTypeOf("function");
     expect(defaultComponents.DashboardProfileCard).toBeTypeOf("function");
@@ -133,5 +135,29 @@ describe("Dashboard page", () => {
     expect(await screen.findByTestId("override-cta")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /browse the store/i })).not.toBeInTheDocument();
     expect(screen.getByText("Maya Izen")).toBeInTheDocument();
+  });
+
+  it("renders panel plugin contributions in dashboard tabs", async () => {
+    mockDashboardApis();
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "client.dashboard.services",
+      contributionId: "status",
+      component: () => <p>Acme services widget</p>,
+    });
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "client.dashboard.invoices",
+      contributionId: "balance",
+      component: () => <p>Acme invoices widget</p>,
+    });
+
+    await renderDashboard();
+
+    expect(await screen.findByText("Acme services widget")).toBeVisible();
+    expect(screen.queryByText("Acme invoices widget")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /invoices/i }));
+    expect(await screen.findByText("Acme invoices widget")).toBeVisible();
   });
 });

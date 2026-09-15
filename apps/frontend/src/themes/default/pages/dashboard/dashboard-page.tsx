@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type {
   DashboardProfileLink,
   DashboardTabId,
@@ -16,6 +16,7 @@ export function DashboardPage({
   profileTo,
   ctaTo,
   supportTo,
+  extensions,
 }: {
   user: PublicUser;
   joinedLabel: string;
@@ -24,6 +25,7 @@ export function DashboardPage({
   profileTo: "/settings";
   ctaTo: "/store";
   supportTo?: "/support";
+  extensions?: Partial<Record<DashboardTabId, ReactNode>>;
 }) {
   const {
     Card,
@@ -76,6 +78,7 @@ export function DashboardPage({
                 return (
                   <TabsContent key={tab.id} value={tab.id} className="min-h-0 flex-1">
                     <Panel />
+                    {extensions?.[tab.id]}
                   </TabsContent>
                 );
               })}

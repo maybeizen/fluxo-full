@@ -51,7 +51,7 @@ export function MarketingNavbar({ items, accountMenu }: MarketingNavbarProps) {
           {accountMenu.isPending ? (
             <Skeleton className="h-8 w-28" />
           ) : user ? (
-            <AvatarDropdown user={user} items={accountMenu.items} onSignOut={accountMenu.onSignOut} />
+            <AvatarDropdown user={user} items={accountMenu.items} extraItems={accountMenu.extraItems} onSignOut={accountMenu.onSignOut} />
           ) : (
             <>
               {settings.authDisableLogin ? null : (
@@ -96,6 +96,7 @@ export function MarketingNavbar({ items, accountMenu }: MarketingNavbarProps) {
                   <AvatarDropdown
                     user={user}
                     items={accountMenu.items}
+                    extraItems={accountMenu.extraItems}
                     onSignOut={accountMenu.onSignOut}
                     className="w-full"
                   />

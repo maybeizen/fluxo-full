@@ -1,9 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, vi } from "vitest";
 import * as api from "@/lib/api";
+import { resetPanelExtensionRegistry } from "@/plugin-system";
 
 beforeEach(() => {
   vi.spyOn(api, "getApiUrl").mockReturnValue(undefined);
+  resetPanelExtensionRegistry();
 });
 
 Object.defineProperty(window, "matchMedia", {

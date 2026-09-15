@@ -8,9 +8,10 @@ import { useUI } from "@/theme-system";
 export interface AppShellProps {
   children: ReactNode;
   navItems?: readonly SidebarNavItem[];
+  extraNav?: ReactNode;
 }
 
-export function AppShell({ children, navItems = appNavItems }: AppShellProps) {
+export function AppShell({ children, navItems = appNavItems, extraNav }: AppShellProps) {
   const { AppShell: ThemeAppShell } = useUI();
   const accountMenu = useAccountMenu();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -19,6 +20,7 @@ export function AppShell({ children, navItems = appNavItems }: AppShellProps) {
   return (
     <ThemeAppShell
       navItems={navItems}
+      extraNav={extraNav}
       accountMenu={accountMenu}
       crumbs={crumbsForPath(pathname)}
       homeTo={homePathFor(pathname)}

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
 import { routeTree } from "@/routeTree.gen";
 import { UserRole } from "@/lib/auth";
+import { registerPanelContribution } from "@/plugin-system";
 import { createUser, jsonResponse, mockApiUrl } from "@/test/auth";
 import type { AdminUserListItem } from "../types";
 
@@ -134,5 +135,29 @@ describe("Admin users page", () => {
     expect(within(table).getByText("MA")).toBeInTheDocument();
     copyButton.click();
     expect(writeText).toHaveBeenCalledWith("550e8400-e29b-41d4-a716-446655440000");
+  });
+
+  it("renders panel plugin list actions for each user", async () => {
+    mockAdminApis([
+      createListItem(),
+      createListItem({
+        id: "user-2",
+        username: "ada",
+        email: "ada@fluxo.test",
+        role: UserRole.User,
+      }),
+    ]);
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "admin.users.listAction",
+      contributionId: "impersonate",
+      component: ({ targetUser }) => <button type="button">Inspect {targetUser.username}</button>,
+    });
+
+    await renderUsers();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("button", { name: "Inspect maya" })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "Inspect ada" })).toBeInTheDocument();
   });
 });

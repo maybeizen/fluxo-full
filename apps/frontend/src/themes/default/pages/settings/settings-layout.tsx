@@ -9,11 +9,13 @@ export function SettingsLayout({
   profile,
   security,
   sessions,
+  extraSections,
 }: {
   tab?: SettingsTab;
   profile: ReactNode;
   security: ReactNode;
   sessions: ReactNode;
+  extraSections?: ReactNode;
 }) {
   const { Tabs, TabsContent, TabsList, TabsTrigger } = useUI();
   const t = useT();
@@ -43,6 +45,7 @@ export function SettingsLayout({
         <TabsContent value="security">{security}</TabsContent>
         <TabsContent value="sessions">{sessions}</TabsContent>
       </Tabs>
+      {extraSections}
     </div>
   );
 }

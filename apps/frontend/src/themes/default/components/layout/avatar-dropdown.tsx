@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, LogOutIcon } from "lucide-react";
 import type { AccountMenuItem } from "@/hooks/use-account-menu";
@@ -10,11 +10,12 @@ import { useUI } from "@/theme-system/use-ui";
 export interface AvatarDropdownProps {
   user: PublicUser;
   items: AccountMenuItem[];
+  extraItems?: ReactNode;
   onSignOut: () => void;
   className?: string;
 }
 
-export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDropdownProps) {
+export function AvatarDropdown({ user, items, extraItems, onSignOut, className }: AvatarDropdownProps) {
   const {
     Avatar,
     AvatarFallback,
@@ -79,6 +80,7 @@ export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDrop
               </DropdownMenuItem>
             );
           })}
+          {extraItems}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={onSignOut}>

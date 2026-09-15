@@ -8,11 +8,14 @@ import {
   ShieldIcon,
   type LucideIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { isAdminPath } from "@/components/layout/admin-nav";
 import { useSession } from "@/hooks/use-session";
 import { logout } from "@/lib/auth-api";
 import { authMeQueryKey, isAdminRole, type PublicUser } from "@/lib/auth";
+import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
+import { usePublicSettings } from "@/hooks/use-public-settings";
 import { useT } from "@/theme-system/use-t";
 
 export interface AccountMenuItem {
@@ -24,6 +27,7 @@ export interface AccountMenuItem {
 export interface AccountMenu {
   user?: PublicUser;
   items: AccountMenuItem[];
+  extraItems?: ReactNode;
   onSignOut: () => void;
   isPending: boolean;
 }
@@ -34,6 +38,7 @@ export function useAccountMenu(): AccountMenu {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const session = useSession();
+  const settings = usePublicSettings();
   const user = session.data?.status === "authenticated" ? session.data.user : undefined;
   const inAdmin = isAdminPath(pathname);
 
@@ -69,6 +74,15 @@ export function useAccountMenu(): AccountMenu {
   return {
     user,
     items,
+    extraItems: user ? (
+      <PluginSlot
+        point="client.shell.accountMenu"
+        slotProps={{
+          user: toPluginUserView(user),
+          settings: toPluginPublicSettings(settings),
+        }}
+      />
+    ) : undefined,
     onSignOut: () => {
       void handleSignOut();
     },

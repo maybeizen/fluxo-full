@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { PencilIcon } from "lucide-react";
 import { formatJoined, formatRole } from "@/features/admin/format";
 import type { AdminUserListItem } from "@/features/admin/types";
@@ -14,11 +15,13 @@ export function UsersTable({
   currentUserId,
   deletingId,
   onDelete,
+  extraActions,
 }: {
   users: AdminUserListItem[];
   currentUserId: string;
   deletingId?: string;
   onDelete: (user: AdminUserListItem) => void;
+  extraActions?: (user: AdminUserListItem) => ReactNode;
 }) {
   const {
     Avatar,
@@ -88,6 +91,7 @@ export function UsersTable({
                   >
                     <PencilIcon />
                   </IconButton>
+                  {extraActions?.(user)}
                   <DeleteUserDialog
                     user={user}
                     disabled={isSelf}

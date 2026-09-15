@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { CaptchaField } from "@/features/auth/captcha-field";
 import type { LoginFormModel } from "@/hooks/use-login";
 import { t } from "@/theme-system/use-t";
@@ -21,7 +22,8 @@ export function LoginForm({
   passkeyPending,
   onSubmit,
   onPasskey,
-}: LoginFormModel) {
+  extra,
+}: LoginFormModel & { extra?: ReactNode }) {
   const {
     AuthCard,
     AuthSocialActions,
@@ -109,6 +111,7 @@ export function LoginForm({
           <AuthSocialActions passkeyPending={passkeyPending} onPasskey={onPasskey} />
         </FieldGroup>
       </form>
+      {extra}
     </AuthCard>
   );
 }
