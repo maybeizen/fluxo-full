@@ -1,5 +1,7 @@
 import {
   parsePluginId,
+  type FluxoPlugin,
+  type FluxoServicePlugin,
   type PluginContext,
   type PluginId,
   type PluginLogger,
@@ -16,6 +18,10 @@ import { createPluginContext, permissionsFromManifest } from "./context.js";
 import { createForgeEventBus, type ForgeEventBus } from "./events.js";
 import { createJobScheduler, type JobScheduler } from "./jobs.js";
 import type { PluginInstallRow, PluginPersist } from "./persist.js";
+import {
+  createServiceRegistry,
+  type HostServiceRegistry,
+} from "./service-registry.js";
 
 export interface HostContextOptions {
   requestId?: string;
@@ -33,6 +39,7 @@ export type HostContextFactory = (
 export interface ForgeHost {
   readonly persist: PluginPersist;
   readonly manager: PluginManager;
+  readonly services: HostServiceRegistry;
   readonly events: ForgeEventBus;
   readonly jobs: JobScheduler;
   readonly createContext: HostContextFactory;
@@ -169,13 +176,34 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
   });
   holder.manager = manager;
 
+  const services = createServiceRegistry({
+    persist: options.persist,
+    getServicePlugin(pluginId) {
+      return asServicePlugin(manager.getActive(pluginId));
+    },
+    isPluginActive: (pluginId) => manager.getActive(pluginId) !== undefined,
+    createContext: (pluginId, instanceId) => createContext(pluginId, instanceId),
+  });
+
   return {
     persist: options.persist,
     manager,
+    services,
     events,
     jobs,
     createContext,
   };
+}
+
+function asServicePlugin(plugin: FluxoPlugin | undefined): FluxoServicePlugin | undefined {
+  if (
+    plugin &&
+    typeof (plugin as FluxoServicePlugin).provision === "function" &&
+    typeof (plugin as FluxoServicePlugin).capabilities === "function"
+  ) {
+    return plugin as FluxoServicePlugin;
+  }
+  return undefined;
 }
 
 async function resolvePluginMeta(

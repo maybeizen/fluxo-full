@@ -77,6 +77,48 @@ describe("startForge", () => {
     expect(host.manager.list().find((item) => item.id === "acme.boom")?.status).toBe("error");
     expect(host.persist).toBe(persist);
     expect(typeof host.createContext).toBe("function");
+    expect(host.services).toBe(getForgeHost().services);
+  });
+
+  it("exposes a working service registry after boot", async () => {
+    const directory = await tempDir();
+    const pluginId = "acme.compute";
+    const pluginManifest = manifest(pluginId);
+    await writePlugin(
+      directory,
+      pluginId,
+      `export default {
+  manifest: ${JSON.stringify(pluginManifest)},
+  capabilities() { return ["provision.create"]; },
+  provisioningVariables() { return []; },
+  async provision() { return { status: "ok", remoteId: "remote-1" }; },
+};
+`,
+    );
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: pluginId,
+      type: "service",
+      version: "1.0.0",
+      manifest: pluginManifest,
+      enabled: true,
+    });
+    const instance = await persist.createInstance({
+      pluginId,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const host = await startForge({
+      logger: silentLogger(),
+      pluginsDir: directory,
+      persist,
+    });
+    expect(host.manager.getActive(pluginId)).toBeDefined();
+    const provider = await getForgeHost().services.resolve(instance.id);
+    expect(provider.pluginId).toBe(pluginId);
+    expect(provider.instance.id).toBe(instance.id);
+    expect(provider.supports("provision.create")).toBe(true);
   });
 
   it("skips disk plugins when persist and database are missing", async () => {
@@ -91,5 +133,6 @@ describe("startForge", () => {
       pluginsDir: directory,
     });
     expect(host.manager.list()).toEqual([]);
+    expect(await host.services.listInstances()).toEqual([]);
   });
 });

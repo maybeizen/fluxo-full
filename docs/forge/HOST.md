@@ -12,6 +12,7 @@ import { getForgeHost } from "../forge/boot.js";
 const host = getForgeHost();
 const persist = host.persist;
 const manager = host.manager;
+const services = host.services;
 const ctx = await host.createContext(pluginId, instanceId);
 ```
 
@@ -21,11 +22,20 @@ const ctx = await host.createContext(pluginId, instanceId);
 | --- | --- |
 | `persist` | Group B `PluginPersist` (installs, instances, KV, secrets) |
 | `manager` | Group A `PluginManager` (`loadAll`, lifecycle, `getActive`) |
+| `services` | Group D `HostServiceRegistry` (`listInstances`, `getInstance`, `resolve`) |
 | `createContext(pluginId, instanceId?)` | Builds `PluginContext` with the trusted plugin id |
 | `events` | Host event bus. Plugins subscribe through `ctx.events`. Host code emits with `emitForgeEvent` from `events.ts` |
 | `jobs` | In-process scheduler. Plugins use `ctx.jobs.schedule` / `cancel` / `handle` |
 
 Do not import `apps/api/src/forge/persist.ts` constructors from registries if the running host already has persist; reuse `getForgeHost().persist`.
+
+After `manager.loadAll()`, `host.services` is bound to the live manager:
+
+```ts
+host.services.resolve(instanceId);
+```
+
+`getServicePlugin` duck-types active plugins (`provision` + `capabilities`). Pass `host.createContext(pluginId, instanceId)` into the registry; do not import `getForgeHost()` from `service-registry.ts`.
 
 ## Install-state adapter
 
