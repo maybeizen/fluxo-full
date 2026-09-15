@@ -297,6 +297,9 @@ importers:
       '@fluxo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
       '@fluxo/logger':
         specifier: workspace:*
         version: link:../../packages/logger

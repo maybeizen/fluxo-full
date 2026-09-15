@@ -23,6 +23,7 @@
   "dependencies": {
     "@fluxo/crypto": "workspace:*",
     "@fluxo/db": "workspace:*",
+    "@fluxo/forge": "workspace:*",
     "@fluxo/logger": "workspace:*",
     "@fluxo/redis": "workspace:*",
     "@fluxo/s3": "workspace:*",
