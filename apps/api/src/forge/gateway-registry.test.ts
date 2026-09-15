@@ -11,7 +11,8 @@ import {
   type PluginWebhookRequest,
   type PluginWebhookResult,
 } from "@fluxo/forge";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createForgeEventBus, setActiveForgeEventBus } from "./events.js";
 import {
   GatewayInstanceDisabledError,
   GatewayNotFoundError,
@@ -93,6 +94,7 @@ function fakeContext(pluginId: string, instanceId?: string): PluginContext {
     jobs: {
       schedule: async () => ({ jobId: "job" }),
       cancel: async () => undefined,
+      handle: () => () => undefined,
     },
     http: {
       request: async () => ({ status: 200, headers: {}, body: {} }),
@@ -279,6 +281,10 @@ async function setup(options?: {
 }
 
 describe("createGatewayRegistry", () => {
+  afterEach(() => {
+    setActiveForgeEventBus(undefined);
+  });
+
   it("lets two gateway instances of the same plugin coexist", async () => {
     const { registry, plugins } = await setup();
     const listed = await registry.listInstances(PAY_ID);
@@ -604,5 +610,174 @@ describe("createGatewayRegistry", () => {
       `forge/gateway/${INSTANCE_A}/checkout/idemp/`,
     );
     expect(keys).toHaveLength(1);
+  });
+
+  it("emits payment.refunded after a successful refund", async () => {
+    const bus = createForgeEventBus();
+    const refunded = vi.fn();
+    const completed = vi.fn();
+    bus.on("payment.refunded", refunded);
+    bus.on("payment.completed", completed);
+    setActiveForgeEventBus(bus);
+    const { registry } = await setup();
+    const checkout = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    expect(completed).not.toHaveBeenCalled();
+    const refund = await registry.refund({
+      instanceId: INSTANCE_A,
+      checkoutId: checkout.checkoutId,
+      amount: { amount: 500, currency: "USD" },
+    });
+    expect(refund.status).toBe("refunded");
+    expect(refunded).toHaveBeenCalledWith({
+      paymentId: checkout.checkoutId,
+      invoiceId: "inv_1",
+      amount: { amount: 500, currency: "USD" },
+    });
+  });
+
+  it("emits payment.completed when checkout or status is completed", async () => {
+    const bus = createForgeEventBus();
+    const completed = vi.fn();
+    const failed = vi.fn();
+    bus.on("payment.completed", completed);
+    bus.on("payment.failed", failed);
+    setActiveForgeEventBus(bus);
+    const plugin = gatewayPlugin(PAY_ID);
+    plugin.createCheckout = async (_ctx, request) => ({
+      mode: "offline",
+      checkoutId: `chk_${request.idempotencyKey}_done`,
+      status: "completed",
+    });
+    plugin.getPaymentStatus = async () => "completed";
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: PAY_ID,
+      type: "gateway",
+      version: "1.0.0",
+      manifest: payManifest,
+      enabled: true,
+      status: "started",
+    });
+    await persist.createInstance({
+      id: INSTANCE_A,
+      pluginId: PAY_ID,
+      kind: "gateway",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const registry = createGatewayRegistry({
+      persist,
+      getGatewayPlugin: () => plugin,
+      isPluginActive: () => true,
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
+    });
+
+    const checkout = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    expect(checkout.status).toBe("completed");
+    expect(completed).toHaveBeenCalledWith({
+      paymentId: checkout.checkoutId,
+      invoiceId: "inv_1",
+      amount: { amount: 1999, currency: "USD" },
+    });
+    expect(failed).not.toHaveBeenCalled();
+
+    completed.mockClear();
+    const status = await registry.getPaymentStatus({
+      instanceId: INSTANCE_A,
+      checkoutId: checkout.checkoutId,
+    });
+    expect(status).toBe("completed");
+    expect(completed).toHaveBeenCalledWith({
+      paymentId: checkout.checkoutId,
+      invoiceId: "inv_1",
+      amount: { amount: 1999, currency: "USD" },
+    });
+  });
+
+  it("does not emit payment events when checkout throws", async () => {
+    const bus = createForgeEventBus();
+    const completed = vi.fn();
+    bus.on("payment.completed", completed);
+    setActiveForgeEventBus(bus);
+    const { registry } = await setup({
+      plugins: new Map([
+        [PAY_ID, gatewayPlugin(PAY_ID, { throwOn: "createCheckout" })],
+      ]),
+    });
+    await expect(
+      registry.createCheckout(checkoutRequest(INSTANCE_A)),
+    ).rejects.toMatchObject({ code: "forge_gateway" });
+    expect(completed).not.toHaveBeenCalled();
+  });
+
+  it("emits payment.completed from handleWebhook when status is completed", async () => {
+    const bus = createForgeEventBus();
+    const completed = vi.fn();
+    bus.on("payment.completed", completed);
+    setActiveForgeEventBus(bus);
+    const plugin = gatewayPlugin(PAY_ID);
+    plugin.handleWebhook = async (_ctx, request) => ({
+      status: 200,
+      recognized: true,
+      payment: {
+        checkoutId: `chk_${request.instanceId.slice(0, 8)}`,
+        status: "completed",
+      },
+    });
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: PAY_ID,
+      type: "gateway",
+      version: "1.0.0",
+      manifest: payManifest,
+      enabled: true,
+      status: "started",
+    });
+    await persist.createInstance({
+      id: INSTANCE_A,
+      pluginId: PAY_ID,
+      kind: "gateway",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const registry = createGatewayRegistry({
+      persist,
+      getGatewayPlugin: () => plugin,
+      isPluginActive: () => true,
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
+    });
+    const checkout = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    completed.mockClear();
+    await registry.handleWebhook(PAY_ID, {
+      method: "POST",
+      headers: {},
+      query: {},
+      rawBody: new Uint8Array(),
+      instanceId: INSTANCE_A,
+    });
+    expect(completed).toHaveBeenCalledWith({
+      paymentId: checkout.checkoutId,
+      invoiceId: "inv_1",
+      amount: { amount: 1999, currency: "USD" },
+    });
+  });
+
+  it("does not fail refund when a payment event listener throws", async () => {
+    const bus = createForgeEventBus();
+    bus.on("payment.refunded", () => {
+      throw new Error("listener boom");
+    });
+    setActiveForgeEventBus(bus);
+    const { registry } = await setup();
+    const checkout = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    await expect(
+      registry.refund({
+        instanceId: INSTANCE_A,
+        checkoutId: checkout.checkoutId,
+        amount: { amount: 500, currency: "USD" },
+      }),
+    ).resolves.toMatchObject({ status: "refunded" });
   });
 });

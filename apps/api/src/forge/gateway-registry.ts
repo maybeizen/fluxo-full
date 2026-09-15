@@ -9,6 +9,7 @@ import {
   assertNoPrototypePollution,
   isSafeStorageKey,
   isSafeWebhookName,
+  isMoney,
   jsonValueSchema,
   parseInstanceId,
   parsePluginId,
@@ -20,6 +21,7 @@ import {
   type GatewayInstance,
   type GatewayRegistry,
   type JsonValue,
+  type Money,
   type PluginContext,
   type PluginHealthSnapshot,
   type PluginId,
@@ -32,6 +34,7 @@ import {
   type RefundResult,
   type ResolvedGatewayProvider,
 } from "@fluxo/forge";
+import { emitForgeEvent } from "./events.js";
 import type {
   PluginInstallRow,
   PluginInstanceRow,
@@ -122,6 +125,7 @@ const PAYMENT_STATUSES = new Set<PaymentStatus>([
 
 interface StoredCheckout {
   idempotencyKey: string;
+  invoiceId?: string;
   amount: number;
   currency: string;
   mode: CheckoutMode;
@@ -270,6 +274,12 @@ export function createGatewayRegistry(
         request,
         result,
       );
+      await emitPaymentOutcome({
+        status: result.status,
+        paymentId: result.checkoutId,
+        invoiceId: request.invoiceId,
+        amount: request.amount,
+      });
       return result;
     },
 
@@ -277,9 +287,22 @@ export function createGatewayRegistry(
       const resolved = await requireGatewayInstance(request.instanceId);
       assertPermission(resolved.install, "billing.checkout");
       const ctx = await contextFor(resolved.pluginId, resolved.instance.id);
-      return invoke(ctx, "getPaymentStatus", () =>
+      const status = await invoke(ctx, "getPaymentStatus", () =>
         resolved.plugin.getPaymentStatus(ctx, request),
       );
+      const stored = await loadCheckoutById(
+        persist,
+        resolved.pluginId,
+        resolved.instance.id,
+        request.checkoutId,
+      );
+      await emitPaymentOutcome({
+        status,
+        paymentId: request.checkoutId,
+        invoiceId: stored?.invoiceId,
+        amount: storedAmount(stored),
+      });
+      return status;
     },
 
     async refund(request) {
@@ -290,9 +313,22 @@ export function createGatewayRegistry(
         throw new ForgeValidationError("Gateway does not support refunds");
       }
       const ctx = await contextFor(resolved.pluginId, resolved.instance.id);
-      return invoke(ctx, "refund", () =>
+      const result = await invoke(ctx, "refund", () =>
         refund.call(resolved.plugin, ctx, request),
       );
+      const stored = await loadCheckoutById(
+        persist,
+        resolved.pluginId,
+        resolved.instance.id,
+        request.checkoutId,
+      );
+      await emitPaymentOutcome({
+        status: result.status,
+        paymentId: request.checkoutId,
+        invoiceId: stored?.invoiceId,
+        amount: isMoney(result.amount) ? result.amount : storedAmount(stored),
+      });
+      return result;
     },
 
     async health(instanceId) {
@@ -341,9 +377,24 @@ export function createGatewayRegistry(
         );
       }
       const ctx = await contextFor(id, instance.id);
-      return invoke(ctx, "handleWebhook", () =>
+      const result = await invoke(ctx, "handleWebhook", () =>
         handleWebhook.call(plugin, ctx, request),
       );
+      if (result.payment !== undefined) {
+        const stored = await loadCheckoutById(
+          persist,
+          id,
+          instance.id,
+          result.payment.checkoutId,
+        );
+        await emitPaymentOutcome({
+          status: result.payment.status,
+          paymentId: result.payment.checkoutId,
+          invoiceId: stored?.invoiceId,
+          amount: storedAmount(stored),
+        });
+      }
+      return result;
     },
 
     async listWebhookHandlers(pluginId) {
@@ -449,23 +500,30 @@ async function persistCheckoutReplay(
   request: CreateCheckoutRequest,
   result: CheckoutResult,
 ): Promise<void> {
+  const record = checkoutRecord({
+    idempotencyKey: request.idempotencyKey,
+    ...(request.invoiceId.length === 0 ? {} : { invoiceId: request.invoiceId }),
+    amount: request.amount.amount,
+    currency: request.amount.currency,
+    mode: result.mode,
+    checkoutId: result.checkoutId,
+    status: result.status,
+    ...(result.redirectUrl === undefined
+      ? {}
+      : { redirectUrl: result.redirectUrl }),
+    ...(result.clientToken === undefined
+      ? {}
+      : { clientToken: result.clientToken }),
+  });
   await persist.setKv(
     pluginId,
     checkoutIdempotencyKey(instanceId, request.idempotencyKey),
-    checkoutRecord({
-      idempotencyKey: request.idempotencyKey,
-      amount: request.amount.amount,
-      currency: request.amount.currency,
-      mode: result.mode,
-      checkoutId: result.checkoutId,
-      status: result.status,
-      ...(result.redirectUrl === undefined
-        ? {}
-        : { redirectUrl: result.redirectUrl }),
-      ...(result.clientToken === undefined
-        ? {}
-        : { clientToken: result.clientToken }),
-    }),
+    record,
+  );
+  await persist.setKv(
+    pluginId,
+    checkoutLookupKey(instanceId, result.checkoutId),
+    record,
   );
 }
 
@@ -513,6 +571,9 @@ function parseStoredCheckout(
     mode: record.mode as CheckoutMode,
     checkoutId: record.checkoutId,
     status: record.status as PaymentStatus,
+    ...(typeof record.invoiceId === "string"
+      ? { invoiceId: record.invoiceId }
+      : {}),
     ...(typeof record.redirectUrl === "string"
       ? { redirectUrl: record.redirectUrl }
       : {}),
@@ -525,6 +586,7 @@ function parseStoredCheckout(
 function checkoutRecord(record: StoredCheckout): JsonValue {
   return {
     idempotencyKey: record.idempotencyKey,
+    ...(record.invoiceId === undefined ? {} : { invoiceId: record.invoiceId }),
     amount: record.amount,
     currency: record.currency,
     mode: record.mode,
@@ -556,6 +618,76 @@ function storedCheckoutResult(record: StoredCheckout): CheckoutResult {
 function checkoutIdempotencyKey(instanceId: string, key: string): string {
   const digest = createHash("sha256").update(key).digest("hex");
   return `forge/gateway/${storageSegment(instanceId)}/checkout/idemp/${digest}`;
+}
+
+function checkoutLookupKey(instanceId: string, checkoutId: string): string {
+  return `forge/gateway/${storageSegment(instanceId)}/checkout/id/${storageSegment(checkoutId)}`;
+}
+
+async function loadCheckoutById(
+  persist: PluginPersist,
+  pluginId: string,
+  instanceId: string,
+  checkoutId: string,
+): Promise<StoredCheckout | undefined> {
+  const stored = await persist.getKv(
+    pluginId,
+    checkoutLookupKey(instanceId, checkoutId),
+  );
+  return parseStoredCheckout(stored);
+}
+
+function storedAmount(record: StoredCheckout | undefined): Money | undefined {
+  if (record === undefined) {
+    return undefined;
+  }
+  const amount = { amount: record.amount, currency: record.currency };
+  return isMoney(amount) ? amount : undefined;
+}
+
+async function emitPaymentOutcome(options: {
+  status: PaymentStatus;
+  paymentId: string;
+  invoiceId?: string;
+  amount?: Money;
+}): Promise<void> {
+  if (
+    options.status !== "completed" &&
+    options.status !== "failed" &&
+    options.status !== "refunded"
+  ) {
+    return;
+  }
+  if (options.invoiceId === undefined || options.invoiceId.length === 0) {
+    return;
+  }
+  try {
+    if (options.status === "failed") {
+      await emitForgeEvent("payment.failed", {
+        paymentId: options.paymentId,
+        invoiceId: options.invoiceId,
+      });
+      return;
+    }
+    if (options.amount === undefined) {
+      return;
+    }
+    if (options.status === "completed") {
+      await emitForgeEvent("payment.completed", {
+        paymentId: options.paymentId,
+        invoiceId: options.invoiceId,
+        amount: options.amount,
+      });
+      return;
+    }
+    await emitForgeEvent("payment.refunded", {
+      paymentId: options.paymentId,
+      invoiceId: options.invoiceId,
+      amount: options.amount,
+    });
+  } catch {
+    return;
+  }
 }
 
 function storageSegment(value: string): string {

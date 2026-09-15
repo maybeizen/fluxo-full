@@ -29,6 +29,7 @@ import {
   type ServiceInstance,
   type ServiceRegistry,
 } from "@fluxo/forge";
+import { emitForgeEvent } from "./events.js";
 import type { PluginPersist, PluginInstanceRow } from "./persist.js";
 
 const CAPABILITY_SET = new Set<string>(SERVICE_CAPABILITIES);
@@ -274,11 +275,11 @@ export function createServiceRegistry(
       request.serviceId,
     );
     const remoteId = result.remoteId ?? stored?.remoteId;
-    const merged =
-      remoteId === undefined ? result : { ...result, remoteId };
+    const merged = remoteId === undefined ? result : { ...result, remoteId };
     if (merged.status !== "failed") {
       await persistProvision(instance, request, merged);
     }
+    await emitProvisionOutcome(request, merged);
     return merged;
   }
 
@@ -801,6 +802,46 @@ function sanitizeMessage(message: string | undefined): string | undefined {
     return REDACTED;
   }
   return message;
+}
+
+async function emitProvisionOutcome(
+  request: ProvisionRequest,
+  result: HostProvisionResult,
+): Promise<void> {
+  if (result.idempotentReplay === true) {
+    return;
+  }
+  if (result.status !== "ok" && result.status !== "noop") {
+    return;
+  }
+  try {
+    if (request.action === "create") {
+      if (result.remoteId === undefined) {
+        return;
+      }
+      await emitForgeEvent("service.provisioned", {
+        serviceId: request.serviceId,
+        instanceId: request.instanceId,
+        remoteId: result.remoteId,
+      });
+      return;
+    }
+    if (request.action === "suspend") {
+      await emitForgeEvent("service.suspended", {
+        serviceId: request.serviceId,
+        instanceId: request.instanceId,
+      });
+      return;
+    }
+    if (request.action === "terminate") {
+      await emitForgeEvent("service.terminated", {
+        serviceId: request.serviceId,
+        instanceId: request.instanceId,
+      });
+    }
+  } catch {
+    return;
+  }
 }
 
 function pluginFailedError(): ForgeError {

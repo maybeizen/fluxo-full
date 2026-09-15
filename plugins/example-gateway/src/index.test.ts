@@ -82,6 +82,7 @@ function fakeContext(
     jobs: {
       schedule: async () => ({ jobId: "job" }),
       cancel: async () => undefined,
+      handle: () => () => undefined,
     },
     http: {
       request: async () => ({ status: 200, headers: {}, body: {} }),

@@ -62,8 +62,10 @@ This host emits:
 - `user.created` from public registration (`apps/api/src/routes/auth.ts`) and admin user create (`apps/api/src/routes/admin.ts`)
 - `user.updated` / `user.deleted` / `user.suspended` / `user.unsuspended` / `user.roleChanged` from admin user routes
 - `settings.updated` from admin settings save (`apps/api/src/routes/settings.ts`); payload is `{ keys }` only, never secret values
+- `service.provisioned` / `service.suspended` / `service.terminated` from the service registry after successful create, suspend, and terminate
+- `payment.completed` / `payment.failed` / `payment.refunded` from the gateway registry when checkout, payment status, refund, or webhook results report those outcomes
 
-Service events (`service.provisioned`, `service.suspended`, `service.terminated`) will emit from the service registry in a follow-up. Payment events (`payment.completed`, `payment.failed`, `payment.refunded`) will emit from the gateway registry in a follow-up. Session and auth login/logout events are not yet wired from session issue/destroy.
+Session and auth login/logout events are not yet wired from session issue/destroy.
 
 ## Webhooks
 

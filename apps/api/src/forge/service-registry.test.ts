@@ -15,7 +15,8 @@ import {
   type ProvisionResult,
   type ServiceCapability,
 } from "@fluxo/forge";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createForgeEventBus, setActiveForgeEventBus } from "./events.js";
 import { createMemoryPluginPersist, createPluginStorage } from "./persist.js";
 import {
   createServiceRegistry,
@@ -127,6 +128,7 @@ function fakeContext(
     jobs: {
       schedule: async () => ({ jobId: "job" }),
       cancel: async () => undefined,
+      handle: () => () => undefined,
     },
     http: {
       request: async () => ({ status: 200, headers: {}, body: {} }),
@@ -203,6 +205,10 @@ function provisionInput(
 }
 
 describe("createServiceRegistry", () => {
+  afterEach(() => {
+    setActiveForgeEventBus(undefined);
+  });
+
   it("resolves two instances of the same plugin independently", async () => {
     const { persist, registry } = createHarness();
     await seedServiceInstall(persist);
@@ -378,6 +384,10 @@ describe("createServiceRegistry", () => {
         `upstream failed token=${SECRET}\n    at Plugin.provision`,
       );
     };
+    const bus = createForgeEventBus();
+    const provisioned = vi.fn();
+    bus.on("service.provisioned", provisioned);
+    setActiveForgeEventBus(bus);
     const { persist, registry } = createHarness({ plugin });
     await seedServiceInstall(persist);
     const instance = await persist.createInstance({
@@ -401,6 +411,7 @@ describe("createServiceRegistry", () => {
     expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(
       "at Plugin.provision",
     );
+    expect(provisioned).not.toHaveBeenCalled();
   });
 
   it("persists remote id and idempotency or operation id fields", async () => {
@@ -628,5 +639,76 @@ describe("createServiceRegistry", () => {
     await expect(
       provider.modify(provisionInput("svc-1", "idem-modify")),
     ).rejects.toBeInstanceOf(ForgeValidationError);
+  });
+
+  it("emits service events after successful provision actions", async () => {
+    const plugin = new TestServicePlugin();
+    plugin.advertised = [
+      "provision.create",
+      "provision.suspend",
+      "provision.terminate",
+      "provision.unsuspend",
+    ];
+    const bus = createForgeEventBus();
+    const provisioned = vi.fn();
+    const suspended = vi.fn();
+    const terminated = vi.fn();
+    bus.on("service.provisioned", provisioned);
+    bus.on("service.suspended", suspended);
+    bus.on("service.terminated", terminated);
+    setActiveForgeEventBus(bus);
+    const { persist, registry } = createHarness({ plugin });
+    await seedServiceInstall(persist);
+    const instance = await persist.createInstance({
+      pluginId: SERVICE_ID,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const provider = await registry.resolve(instance.id);
+    const created = await provider.provisionService(provisionInput("svc-evt"));
+    expect(created.status).toBe("ok");
+    expect(provisioned).toHaveBeenCalledWith({
+      serviceId: "svc-evt",
+      instanceId: instance.id,
+      remoteId: created.remoteId,
+    });
+
+    await provider.suspend(provisionInput("svc-evt", "idem-suspend"));
+    expect(suspended).toHaveBeenCalledWith({
+      serviceId: "svc-evt",
+      instanceId: instance.id,
+    });
+
+    await provider.unsuspend(provisionInput("svc-evt", "idem-unsuspend"));
+    expect(provisioned).toHaveBeenCalledTimes(1);
+    expect(suspended).toHaveBeenCalledTimes(1);
+    expect(terminated).not.toHaveBeenCalled();
+
+    await provider.terminate(provisionInput("svc-evt", "idem-terminate"));
+    expect(terminated).toHaveBeenCalledWith({
+      serviceId: "svc-evt",
+      instanceId: instance.id,
+    });
+  });
+
+  it("does not fail provision when a service event listener throws", async () => {
+    const bus = createForgeEventBus();
+    bus.on("service.provisioned", () => {
+      throw new Error("listener boom");
+    });
+    setActiveForgeEventBus(bus);
+    const { persist, registry } = createHarness();
+    await seedServiceInstall(persist);
+    const instance = await persist.createInstance({
+      pluginId: SERVICE_ID,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const provider = await registry.resolve(instance.id);
+    await expect(
+      provider.provisionService(provisionInput("svc-listener")),
+    ).resolves.toMatchObject({ status: "ok" });
   });
 });
