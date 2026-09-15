@@ -1,14 +1,17 @@
+import { FORGE_WEBHOOK_PATH_PREFIX } from "@fluxo/forge";
 import type { FluxoLogger } from "@fluxo/logger";
 import type { Redis } from "@fluxo/redis";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppBindings } from "./app-bindings.js";
 import type { AuthServices } from "./auth/create-auth.js";
+import { asGatewayPlugin, type ForgeHost } from "./forge/host.js";
 import { errorHandler } from "./middleware/error.js";
 import { requestLogger } from "./middleware/logger.js";
 import { adminRoutes } from "./routes/admin.js";
 import { authRoutes } from "./routes/auth.js";
 import { fileRoutes } from "./routes/files.js";
+import { forgeWebhookRoutes } from "./routes/forge-webhooks.js";
 import { healthRoutes } from "./routes/health.js";
 import { settingsPublicRoutes } from "./routes/settings.js";
 
@@ -20,6 +23,7 @@ export interface CreateAppOptions {
   postgres: { ping: () => Promise<void> };
   corsOrigin?: string;
   auth: AuthServices;
+  forge?: ForgeHost;
 }
 
 export function createApp(options: CreateAppOptions): Hono<AppBindings> {
@@ -41,5 +45,19 @@ export function createApp(options: CreateAppOptions): Hono<AppBindings> {
   app.route("/auth", authRoutes(auth));
   app.route("/admin", adminRoutes(auth));
   app.route("/files", fileRoutes(options.auth.storage));
+  if (options.forge) {
+    const forge = options.forge;
+    app.route(
+      FORGE_WEBHOOK_PATH_PREFIX,
+      forgeWebhookRoutes({
+        persist: forge.persist,
+        getGatewayPlugin: (pluginId) => asGatewayPlugin(forge.manager.getActive(pluginId)),
+        isPluginActive: (pluginId) => forge.manager.getActive(pluginId) !== undefined,
+        createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+        logger: options.logger,
+        listWebhookHandlers: (pluginId) => forge.gateways.listWebhookHandlers(pluginId),
+      }),
+    );
+  }
   return app;
 }

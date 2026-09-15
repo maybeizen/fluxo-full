@@ -1,5 +1,6 @@
 import {
   parsePluginId,
+  type FluxoGatewayPlugin,
   type FluxoPlugin,
   type FluxoServicePlugin,
   type PluginContext,
@@ -16,6 +17,10 @@ import type { UserStore } from "../auth/stores/types.js";
 import type { SettingsRuntime } from "../settings/runtime.js";
 import { createPluginContext, permissionsFromManifest } from "./context.js";
 import { createForgeEventBus, type ForgeEventBus } from "./events.js";
+import {
+  createGatewayRegistry,
+  type FluxoGatewayRegistry,
+} from "./gateway-registry.js";
 import { createJobScheduler, type JobScheduler } from "./jobs.js";
 import type { PluginInstallRow, PluginPersist } from "./persist.js";
 import {
@@ -40,6 +45,7 @@ export interface ForgeHost {
   readonly persist: PluginPersist;
   readonly manager: PluginManager;
   readonly services: HostServiceRegistry;
+  readonly gateways: FluxoGatewayRegistry;
   readonly events: ForgeEventBus;
   readonly jobs: JobScheduler;
   readonly createContext: HostContextFactory;
@@ -176,12 +182,23 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
   });
   holder.manager = manager;
 
+  const isPluginActive = (pluginId: string) => manager.getActive(pluginId) !== undefined;
+
   const services = createServiceRegistry({
     persist: options.persist,
     getServicePlugin(pluginId) {
       return asServicePlugin(manager.getActive(pluginId));
     },
-    isPluginActive: (pluginId) => manager.getActive(pluginId) !== undefined,
+    isPluginActive,
+    createContext: (pluginId, instanceId) => createContext(pluginId, instanceId),
+  });
+
+  const gateways = createGatewayRegistry({
+    persist: options.persist,
+    getGatewayPlugin(pluginId) {
+      return asGatewayPlugin(manager.getActive(pluginId));
+    },
+    isPluginActive,
     createContext: (pluginId, instanceId) => createContext(pluginId, instanceId),
   });
 
@@ -189,6 +206,7 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
     persist: options.persist,
     manager,
     services,
+    gateways,
     events,
     jobs,
     createContext,
@@ -202,6 +220,19 @@ function asServicePlugin(plugin: FluxoPlugin | undefined): FluxoServicePlugin | 
     typeof (plugin as FluxoServicePlugin).capabilities === "function"
   ) {
     return plugin as FluxoServicePlugin;
+  }
+  return undefined;
+}
+
+export function asGatewayPlugin(
+  plugin: FluxoPlugin | undefined,
+): FluxoGatewayPlugin | undefined {
+  if (
+    plugin &&
+    typeof (plugin as FluxoGatewayPlugin).createCheckout === "function" &&
+    typeof (plugin as FluxoGatewayPlugin).getPaymentStatus === "function"
+  ) {
+    return plugin as FluxoGatewayPlugin;
   }
   return undefined;
 }

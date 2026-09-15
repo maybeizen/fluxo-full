@@ -8,7 +8,7 @@ import { assertRedis, createRedis } from "@fluxo/redis";
 import { createApp } from "./app.js";
 import { createAuthServices } from "./auth/create-auth.js";
 import { loadEnv, type Env } from "./env.js";
-import { startForge, stopForge } from "./forge/boot.js";
+import { startForge, stopForge, type ForgeHost } from "./forge/boot.js";
 
 const rootEnvPath = path.resolve(import.meta.dirname, "../../../.env");
 if (existsSync(rootEnvPath)) {
@@ -51,8 +51,9 @@ async function start(): Promise<void> {
   }
 
   const auth = await createAuthServices({ database, redis, env, logger });
+  let forge: ForgeHost | undefined;
   try {
-    await startForge({
+    forge = await startForge({
       logger,
       pluginsDir: env.PLUGINS_DIR,
       database,
@@ -71,6 +72,7 @@ async function start(): Promise<void> {
     postgres: database,
     corsOrigin: env.FRONTEND_URL,
     auth,
+    forge,
   });
   serve({ fetch: app.fetch, port: env.PORT });
   logger.info("api listening", { port: env.PORT, name: env.APP_NAME });
