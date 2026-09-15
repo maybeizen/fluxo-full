@@ -24,7 +24,8 @@ const services = createServiceRegistry({
     return undefined;
   },
   isPluginActive: (pluginId) => manager.getActive(pluginId) !== undefined,
-  createContext: (pluginId, instanceId) => createPluginContext(pluginId, instanceId),
+  createContext: (pluginId, instanceId) =>
+    createPluginContext(pluginId, instanceId),
 });
 ```
 
@@ -41,12 +42,12 @@ createContext: (pluginId, instanceId) =>
 
 `resolve(instanceId)` returns a bound provider (`instance` + `pluginId` + operations) or a typed Forge error:
 
-| Condition | Error |
-| --- | --- |
-| Unknown instance | `ForgeNotFoundError` |
-| Gateway (or other non-service) instance | `ForgeValidationError` |
-| Instance disabled | `ForgeConflictError` |
-| Plugin disabled / not started (`isPluginActive` false) | `ForgeConflictError` |
+| Condition                                              | Error                              |
+| ------------------------------------------------------ | ---------------------------------- |
+| Unknown instance                                       | `ForgeNotFoundError`               |
+| Gateway (or other non-service) instance                | `ForgeValidationError`             |
+| Instance disabled                                      | `ForgeConflictError`               |
+| Plugin disabled / not started (`isPluginActive` false) | `ForgeConflictError`               |
 | Plugin `status: "error"` or not a `FluxoServicePlugin` | `ForgeError` `forge_plugin_failed` |
 
 Persist already blocks disable/uninstall while enabled instances exist. The registry still fail-closes if those helpers are skipped.

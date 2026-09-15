@@ -1,7 +1,8 @@
 import type { JsonValue, PluginConfigField } from "@fluxo/forge";
 import type { PluginSecretDraft } from "./types";
 
-export type ConfigDraftErrorCode = "required" | "type" | "min" | "max" | "option";
+export type ConfigDraftErrorCode =
+  "required" | "type" | "min" | "max" | "option";
 
 export interface ConfigDraftError {
   key: string;
@@ -41,7 +42,9 @@ function emailLooksValid(value: string): boolean {
     return false;
   }
   const domain = value.slice(at + 1);
-  return domain.includes(".") && !domain.startsWith(".") && !domain.endsWith(".");
+  return (
+    domain.includes(".") && !domain.startsWith(".") && !domain.endsWith(".")
+  );
 }
 
 export function validatePluginConfigDraft(
@@ -77,7 +80,11 @@ export function validatePluginConfigDraft(
           errors.push({ key: field.key, label: field.label, code: "type" });
           break;
         }
-        if (field.type === "text" && field.minLength !== undefined && raw.length < field.minLength) {
+        if (
+          field.type === "text" &&
+          field.minLength !== undefined &&
+          raw.length < field.minLength
+        ) {
           errors.push({ key: field.key, label: field.label, code: "min" });
         }
         if (field.maxLength !== undefined && raw.length > field.maxLength) {
@@ -121,17 +128,25 @@ export function validatePluginConfigDraft(
         break;
       }
       case "select": {
-        if (typeof raw !== "string" || !field.options.some((option) => option.value === raw)) {
+        if (
+          typeof raw !== "string" ||
+          !field.options.some((option) => option.value === raw)
+        ) {
           errors.push({ key: field.key, label: field.label, code: "option" });
         }
         break;
       }
       case "multiselect": {
-        if (!Array.isArray(raw) || raw.some((item) => typeof item !== "string")) {
+        if (
+          !Array.isArray(raw) ||
+          raw.some((item) => typeof item !== "string")
+        ) {
           errors.push({ key: field.key, label: field.label, code: "type" });
           break;
         }
-        const selected = raw.filter((item): item is string => typeof item === "string");
+        const selected = raw.filter(
+          (item): item is string => typeof item === "string",
+        );
         const allowed = new Set(field.options.map((option) => option.value));
         if (selected.some((item) => !allowed.has(item))) {
           errors.push({ key: field.key, label: field.label, code: "option" });

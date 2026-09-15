@@ -13,14 +13,25 @@ export interface AppShellProps {
   homeTo: "/dashboard" | "/admin";
 }
 
-export function AppShell({ children, navItems, extraNav, accountMenu, crumbs, homeTo }: AppShellProps) {
+export function AppShell({
+  children,
+  navItems,
+  extraNav,
+  accountMenu,
+  crumbs,
+  homeTo,
+}: AppShellProps) {
   const { AppHeader, AppSidebar, SidebarInset, SidebarProvider } = useUI();
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <AppSidebar items={navItems} extraNav={extraNav} accountMenu={accountMenu} />
+      <AppSidebar
+        items={navItems}
+        extraNav={extraNav}
+        accountMenu={accountMenu}
+      />
       <SidebarInset>
         <AppHeader homeTo={homeTo} crumbs={crumbs} />
         <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">{children}</div>

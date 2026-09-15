@@ -19,14 +19,20 @@ export const FORGE_JOB_RETRY_DELAY_MS = 50;
 
 const JOB_NAME_PATTERN = /^[a-z][a-z0-9_.-]{0,63}$/;
 
-export type PluginJobHandler = (payload: JsonValue | undefined) => Promise<void> | void;
+export type PluginJobHandler = (
+  payload: JsonValue | undefined,
+) => Promise<void> | void;
 
 export interface HostPluginJobs extends PluginJobs {
   handle(name: string, handler: PluginJobHandler): () => void;
 }
 
 export interface JobScheduler {
-  handle(pluginId: PluginId, name: string, handler: PluginJobHandler): () => void;
+  handle(
+    pluginId: PluginId,
+    name: string,
+    handler: PluginJobHandler,
+  ): () => void;
   schedule(
     pluginId: PluginId,
     job: PluginJobSchedule,
@@ -53,7 +59,9 @@ interface ScheduledJob {
   timer: ReturnType<typeof setTimeout> | undefined;
 }
 
-export function createJobScheduler(options: CreateJobSchedulerOptions): JobScheduler {
+export function createJobScheduler(
+  options: CreateJobSchedulerOptions,
+): JobScheduler {
   const maxRetries = options.maxRetries ?? FORGE_JOB_MAX_RETRIES;
   const retryDelayMs = options.retryDelayMs ?? FORGE_JOB_RETRY_DELAY_MS;
   const minIntervalMs = options.minIntervalMs ?? FORGE_JOB_MIN_INTERVAL_MS;
@@ -108,9 +116,12 @@ export function createJobScheduler(options: CreateJobSchedulerOptions): JobSched
 
   function arm(job: ScheduledJob, delayMs: number): void {
     clearTimer(job);
-    job.timer = setTimeout(() => {
-      void run(job);
-    }, Math.max(0, delayMs));
+    job.timer = setTimeout(
+      () => {
+        void run(job);
+      },
+      Math.max(0, delayMs),
+    );
     job.timer.unref?.();
   }
 

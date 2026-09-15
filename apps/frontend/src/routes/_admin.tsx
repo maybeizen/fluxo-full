@@ -5,7 +5,11 @@ import { requireAuthenticatedSession } from "@/features/auth/guards";
 import { SuspendedPage } from "@/features/auth/suspended-page";
 import { usePublicSettings } from "@/hooks/use-public-settings";
 import { isAdminRole } from "@/lib/auth";
-import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
+import {
+  PluginSlot,
+  toPluginPublicSettings,
+  toPluginUserView,
+} from "@/plugin-system";
 
 export const Route = createFileRoute("/_admin")({
   beforeLoad: async () => {

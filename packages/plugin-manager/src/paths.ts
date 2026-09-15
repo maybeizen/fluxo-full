@@ -53,7 +53,11 @@ export function assertPathInside(root: string, target: string): void {
   const resolvedRoot = path.resolve(root);
   const resolvedTarget = path.resolve(target);
   const relative = path.relative(resolvedRoot, resolvedTarget);
-  if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+  if (
+    relative === "" ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative)
+  ) {
     throw new ForgeValidationError("Path escapes plugin root");
   }
 }

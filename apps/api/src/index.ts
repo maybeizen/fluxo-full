@@ -25,7 +25,9 @@ async function start(): Promise<void> {
   try {
     env = loadEnv();
   } catch (error) {
-    logger.error(error instanceof Error ? error.message : "Invalid environment");
+    logger.error(
+      error instanceof Error ? error.message : "Invalid environment",
+    );
     process.exit(1);
   }
 
@@ -38,7 +40,9 @@ async function start(): Promise<void> {
   try {
     await assertDatabase(database);
   } catch (error) {
-    logger.error(error instanceof Error ? error.message : "Postgres unavailable");
+    logger.error(
+      error instanceof Error ? error.message : "Postgres unavailable",
+    );
     process.exit(1);
   }
 
@@ -63,7 +67,9 @@ async function start(): Promise<void> {
       settings: auth.settings,
     });
   } catch (error) {
-    logger.error(error instanceof Error ? error.message : "Forge failed to start");
+    logger.error(
+      error instanceof Error ? error.message : "Forge failed to start",
+    );
   }
 
   const app = createApp({

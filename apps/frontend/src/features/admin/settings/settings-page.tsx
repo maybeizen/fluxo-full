@@ -12,7 +12,12 @@ export function AdminSettingsPage() {
       model={model}
       tabs={adminSettingsTabs}
       extraSections={
-        user ? <PluginSlot point="admin.settings.section" slotProps={{ user, settings }} /> : null
+        user ? (
+          <PluginSlot
+            point="admin.settings.section"
+            slotProps={{ user, settings }}
+          />
+        ) : null
       }
     />
   );

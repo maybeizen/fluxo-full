@@ -5,13 +5,18 @@ import {
   type PanelExtensionPoint,
   type PanelExtensionRegistry,
 } from "@fluxo/forge";
-import type { FrontendPanelContribution, RenderablePanelContribution } from "./types";
+import type {
+  FrontendPanelContribution,
+  RenderablePanelContribution,
+} from "./types";
 
 const CONTRIBUTION_ID_PATTERN = /^[a-z][a-z0-9_]*$/;
 const CONTRIBUTION_ID_MAX_LENGTH = 64;
 const PANEL_EXTENSION_POINT_SET = new Set<string>(PANEL_EXTENSION_POINTS);
 
-export function isPanelExtensionPoint(value: string): value is PanelExtensionPoint {
+export function isPanelExtensionPoint(
+  value: string,
+): value is PanelExtensionPoint {
   return PANEL_EXTENSION_POINT_SET.has(value);
 }
 
@@ -23,11 +28,19 @@ export function isContributionId(value: string): boolean {
   );
 }
 
-function contributionKey(contribution: Pick<PanelContribution, "pluginId" | "point" | "contributionId">): string {
+function contributionKey(
+  contribution: Pick<
+    PanelContribution,
+    "pluginId" | "point" | "contributionId"
+  >,
+): string {
   return `${contribution.pluginId}\0${contribution.point}\0${contribution.contributionId}`;
 }
 
-function compareContributions(left: PanelContribution, right: PanelContribution): number {
+function compareContributions(
+  left: PanelContribution,
+  right: PanelContribution,
+): number {
   const order = (left.order ?? 0) - (right.order ?? 0);
   if (order !== 0) {
     return order;
@@ -43,7 +56,9 @@ function isRenderableContribution(
   contribution: FrontendPanelContribution,
   point: PanelExtensionPoint,
 ): boolean {
-  return contribution.point === point && typeof contribution.component === "function";
+  return (
+    contribution.point === point && typeof contribution.component === "function"
+  );
 }
 
 export interface PanelExtensionStore extends PanelExtensionRegistry {
@@ -88,7 +103,9 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
     return filter.has(pluginId);
   }
 
-  function sorted(values: Iterable<FrontendPanelContribution>): FrontendPanelContribution[] {
+  function sorted(
+    values: Iterable<FrontendPanelContribution>,
+  ): FrontendPanelContribution[] {
     return [...values].sort(compareContributions);
   }
 
@@ -107,7 +124,10 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
       return listed;
     },
     register(contribution) {
-      if (!isPluginId(contribution.pluginId) || !isContributionId(contribution.contributionId)) {
+      if (
+        !isPluginId(contribution.pluginId) ||
+        !isContributionId(contribution.contributionId)
+      ) {
         return;
       }
       if (!isPanelExtensionPoint(contribution.point)) {
@@ -120,7 +140,8 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
         contributionId: contribution.contributionId,
         title: contribution.title,
         order: contribution.order,
-        component: "component" in contribution ? contribution.component : undefined,
+        component:
+          "component" in contribution ? contribution.component : undefined,
       });
       emit();
     },
@@ -138,9 +159,13 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
           : enabledPluginIdsOverride === null
             ? null
             : new Set(enabledPluginIdsOverride);
-      return store.list(point).filter(
-        (entry) => isRenderableContribution(entry, point) && matchesEnabled(entry.pluginId, filter),
-      ) as RenderablePanelContribution<typeof point>[];
+      return store
+        .list(point)
+        .filter(
+          (entry) =>
+            isRenderableContribution(entry, point) &&
+            matchesEnabled(entry.pluginId, filter),
+        ) as RenderablePanelContribution<typeof point>[];
     },
     reset() {
       contributions.clear();

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createPanelExtensionRegistry, isPanelExtensionPoint } from "./registry";
+import {
+  createPanelExtensionRegistry,
+  isPanelExtensionPoint,
+} from "./registry";
 
 function Widget() {
   return null;
@@ -117,7 +120,11 @@ describe("panel extension registry", () => {
       component: Widget,
     });
 
-    expect(registry.list("admin.dashboard.widget").map((entry) => `${entry.pluginId}:${entry.contributionId}`)).toEqual([
+    expect(
+      registry
+        .list("admin.dashboard.widget")
+        .map((entry) => `${entry.pluginId}:${entry.contributionId}`),
+    ).toEqual([
       "mid.plugin:first",
       "alpha.plugin:a",
       "alpha.plugin:z",

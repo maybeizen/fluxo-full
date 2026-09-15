@@ -26,7 +26,11 @@ import {
   type RefundResult,
   type ResolvedGatewayProvider,
 } from "@fluxo/forge";
-import type { PluginInstallRow, PluginInstanceRow, PluginPersist } from "./persist.js";
+import type {
+  PluginInstallRow,
+  PluginInstanceRow,
+  PluginPersist,
+} from "./persist.js";
 
 export class GatewayNotFoundError extends ForgeNotFoundError {
   constructor(resource: string) {
@@ -38,7 +42,11 @@ export class GatewayPluginDisabledError extends ForgeError {
   readonly pluginId: string;
 
   constructor(pluginId: string) {
-    super("forge_gateway_disabled", `Gateway plugin ${pluginId} is disabled`, 409);
+    super(
+      "forge_gateway_disabled",
+      `Gateway plugin ${pluginId} is disabled`,
+      409,
+    );
     this.pluginId = pluginId;
   }
 }
@@ -47,7 +55,11 @@ export class GatewayInstanceDisabledError extends ForgeError {
   readonly instanceId: string;
 
   constructor(instanceId: string) {
-    super("forge_gateway_disabled", `Gateway instance ${instanceId} is disabled`, 409);
+    super(
+      "forge_gateway_disabled",
+      `Gateway instance ${instanceId} is disabled`,
+      409,
+    );
     this.instanceId = instanceId;
   }
 }
@@ -93,7 +105,9 @@ const SECRETISH =
   /sk_live|sk_test|whsec_|password|secret|api[_-]?key|bearer\s|-----BEGIN|"iv"\s*:/i;
 const CARDISH_KEY = /card|cvc|cvv|pan|credit.?card/i;
 
-export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRegistry {
+export function createGatewayRegistry(
+  deps: GatewayRegistryDeps,
+): FluxoGatewayRegistry {
   const persist = deps.persist;
   const healthTimeoutMs = deps.healthTimeoutMs ?? FORGE_HEALTH_TIMEOUT_MS;
   const registeredHandlers = new Map<string, Set<string>>();
@@ -161,9 +175,16 @@ export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRe
     }
   }
 
-  async function contextFor(pluginId: string, instanceId: string): Promise<PluginContext> {
+  async function contextFor(
+    pluginId: string,
+    instanceId: string,
+  ): Promise<PluginContext> {
     if (deps.createContext === undefined) {
-      throw new ForgeError("forge_plugin_failed", "Plugin context is not configured", 500);
+      throw new ForgeError(
+        "forge_plugin_failed",
+        "Plugin context is not configured",
+        500,
+      );
     }
     const ctx = await deps.createContext(pluginId, instanceId);
     if (ctx.pluginId === pluginId && ctx.instanceId === instanceId) {
@@ -176,7 +197,9 @@ export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRe
     async listInstances(pluginId) {
       const id = pluginId === undefined ? undefined : parsePluginId(pluginId);
       const rows = await persist.listInstances(id);
-      return rows.filter((row) => row.kind === "gateway").map(toGatewayInstance);
+      return rows
+        .filter((row) => row.kind === "gateway")
+        .map(toGatewayInstance);
     },
 
     async getInstance(instanceId) {
@@ -224,13 +247,20 @@ export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRe
         throw new ForgeValidationError("Gateway does not support refunds");
       }
       const ctx = await contextFor(resolved.pluginId, resolved.instance.id);
-      return invoke(ctx, "refund", () => refund.call(resolved.plugin, ctx, request));
+      return invoke(ctx, "refund", () =>
+        refund.call(resolved.plugin, ctx, request),
+      );
     },
 
     async health(instanceId) {
       const resolved = await requireGatewayInstance(instanceId);
       const ctx = await contextFor(resolved.pluginId, resolved.instance.id);
-      return runHealth(ctx, resolved.plugin, resolved.instance.id, healthTimeoutMs);
+      return runHealth(
+        ctx,
+        resolved.plugin,
+        resolved.instance.id,
+        healthTimeoutMs,
+      );
     },
 
     async handleWebhook(pluginId, request) {
@@ -239,7 +269,11 @@ export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRe
       if (install === undefined) {
         throw new GatewayNotFoundError(`plugin ${id}`);
       }
-      if (install.type !== "gateway" || !install.enabled || !deps.isPluginActive(id)) {
+      if (
+        install.type !== "gateway" ||
+        !install.enabled ||
+        !deps.isPluginActive(id)
+      ) {
         throw new GatewayPluginDisabledError(id);
       }
       const plugin = deps.getGatewayPlugin(id);
@@ -250,17 +284,23 @@ export function createGatewayRegistry(deps: GatewayRegistryDeps): FluxoGatewayRe
       if (!hasWebhookPermission(install)) {
         throw new ForgePermissionError("webhooks.receive");
       }
-      const instance = await persist.getInstance(parseInstanceId(request.instanceId));
+      const instance = await persist.getInstance(
+        parseInstanceId(request.instanceId),
+      );
       if (
         instance === undefined ||
         instance.pluginId !== id ||
         instance.kind !== "gateway" ||
         !instance.enabled
       ) {
-        throw new GatewayNotFoundError(`gateway instance ${request.instanceId}`);
+        throw new GatewayNotFoundError(
+          `gateway instance ${request.instanceId}`,
+        );
       }
       const ctx = await contextFor(id, instance.id);
-      return invoke(ctx, "handleWebhook", () => handleWebhook.call(plugin, ctx, request));
+      return invoke(ctx, "handleWebhook", () =>
+        handleWebhook.call(plugin, ctx, request),
+      );
     },
 
     async listWebhookHandlers(pluginId) {
@@ -343,7 +383,10 @@ function toGatewayInstance(row: PluginInstanceRow): GatewayInstance {
   };
 }
 
-function assertPermission(install: PluginInstallRow, permission: PluginPermission): void {
+function assertPermission(
+  install: PluginInstallRow,
+  permission: PluginPermission,
+): void {
   if (!manifestHasPermission(install, permission)) {
     throw new ForgePermissionError(permission);
   }
@@ -361,14 +404,20 @@ function manifestHasPermission(
   permission: PluginPermission,
 ): boolean {
   const manifest = install.manifest;
-  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
     return false;
   }
   const permissions = (manifest as { permissions?: unknown }).permissions;
   return Array.isArray(permissions) && permissions.includes(permission);
 }
 
-function sanitizeHealthMessage(message: string | undefined): string | undefined {
+function sanitizeHealthMessage(
+  message: string | undefined,
+): string | undefined {
   if (message === undefined || message.length === 0) {
     return undefined;
   }
@@ -408,7 +457,9 @@ async function runHealth(
       }),
     ]);
     const status =
-      result.status === "ok" || result.status === "degraded" || result.status === "unhealthy"
+      result.status === "ok" ||
+      result.status === "degraded" ||
+      result.status === "unhealthy"
         ? result.status
         : "unhealthy";
     const message = sanitizeHealthMessage(result.message);
@@ -419,7 +470,8 @@ async function runHealth(
       latencyMs: latency(),
     };
   } catch (error) {
-    const timedOut = error instanceof ForgeTimeoutError || controller.signal.aborted;
+    const timedOut =
+      error instanceof ForgeTimeoutError || controller.signal.aborted;
     ctx.logger.error("gateway health failed", {
       pluginId: ctx.pluginId,
       instanceId,

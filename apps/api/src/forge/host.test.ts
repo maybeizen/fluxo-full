@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createInstallStateAdapter,
-  installStateFromRow,
-} from "./host.js";
+import { createInstallStateAdapter, installStateFromRow } from "./host.js";
 import { createMemoryPluginPersist } from "./persist.js";
 
 const manifest = {
@@ -63,9 +60,15 @@ describe("install-state adapter", () => {
       enabled: false,
     });
     const adapter = createInstallStateAdapter(persist);
-    await adapter.setInstallState("acme.demo", { installed: true, enabled: true });
+    await adapter.setInstallState("acme.demo", {
+      installed: true,
+      enabled: true,
+    });
     expect((await persist.getInstall("acme.demo"))?.enabled).toBe(true);
-    await adapter.setInstallState("acme.demo", { installed: false, enabled: false });
+    await adapter.setInstallState("acme.demo", {
+      installed: false,
+      enabled: false,
+    });
     expect(await persist.getInstall("acme.demo")).toBeUndefined();
   });
 });

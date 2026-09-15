@@ -19,8 +19,12 @@ export interface CreatePluginLoggerOptions {
   secrets?: readonly string[];
 }
 
-export function createPluginLogger(options: CreatePluginLoggerOptions): PluginLogger {
-  const secrets = new Set(options.secrets?.filter((value) => value.length > 0) ?? []);
+export function createPluginLogger(
+  options: CreatePluginLoggerOptions,
+): PluginLogger {
+  const secrets = new Set(
+    options.secrets?.filter((value) => value.length > 0) ?? [],
+  );
   const bindings: Record<string, unknown> = {
     pluginId: options.pluginId,
     pluginVersion: options.pluginVersion,
@@ -37,26 +41,47 @@ export function createPluginLogger(options: CreatePluginLoggerOptions): PluginLo
   return wrapLogger(options.logger.child(bindings), secrets);
 }
 
-export function redactLogValue(value: unknown, secrets: ReadonlySet<string> = new Set()): unknown {
+export function redactLogValue(
+  value: unknown,
+  secrets: ReadonlySet<string> = new Set(),
+): unknown {
   return redactUnknown(value, secrets, 0);
 }
 
-function wrapLogger(logger: PluginLogger, secrets: ReadonlySet<string>): PluginLogger {
+function wrapLogger(
+  logger: PluginLogger,
+  secrets: ReadonlySet<string>,
+): PluginLogger {
   const wrapped: PluginLogger = {
     debug(message, meta) {
-      logger.debug(message, meta === undefined ? undefined : redactRecord(meta, secrets));
+      logger.debug(
+        message,
+        meta === undefined ? undefined : redactRecord(meta, secrets),
+      );
     },
     info(message, meta) {
-      logger.info(message, meta === undefined ? undefined : redactRecord(meta, secrets));
+      logger.info(
+        message,
+        meta === undefined ? undefined : redactRecord(meta, secrets),
+      );
     },
     warn(message, meta) {
-      logger.warn(message, meta === undefined ? undefined : redactRecord(meta, secrets));
+      logger.warn(
+        message,
+        meta === undefined ? undefined : redactRecord(meta, secrets),
+      );
     },
     error(message, meta) {
-      logger.error(message, meta === undefined ? undefined : redactRecord(meta, secrets));
+      logger.error(
+        message,
+        meta === undefined ? undefined : redactRecord(meta, secrets),
+      );
     },
     child(childBindings) {
-      return wrapLogger(logger.child(redactRecord(childBindings, secrets)), secrets);
+      return wrapLogger(
+        logger.child(redactRecord(childBindings, secrets)),
+        secrets,
+      );
     },
   };
   return wrapped;
@@ -68,12 +93,18 @@ function redactRecord(
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(meta)) {
-    redacted[key] = isSensitiveKey(key) ? REDACTED : redactUnknown(value, secrets, 0);
+    redacted[key] = isSensitiveKey(key)
+      ? REDACTED
+      : redactUnknown(value, secrets, 0);
   }
   return redacted;
 }
 
-function redactUnknown(value: unknown, secrets: ReadonlySet<string>, depth: number): unknown {
+function redactUnknown(
+  value: unknown,
+  secrets: ReadonlySet<string>,
+  depth: number,
+): unknown {
   if (depth > 8) {
     return REDACTED;
   }
@@ -89,7 +120,9 @@ function redactUnknown(value: unknown, secrets: ReadonlySet<string>, depth: numb
   const record = value as Record<string, unknown>;
   const redacted: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(record)) {
-    redacted[key] = isSensitiveKey(key) ? REDACTED : redactUnknown(entry, secrets, depth + 1);
+    redacted[key] = isSensitiveKey(key)
+      ? REDACTED
+      : redactUnknown(entry, secrets, depth + 1);
   }
   return redacted;
 }
@@ -108,5 +141,8 @@ function redactString(value: string, secrets: ReadonlySet<string>): string {
 }
 
 function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_HEADER_SET.has(key.toLowerCase()) || SENSITIVE_KEY_PATTERN.test(key);
+  return (
+    SENSITIVE_HEADER_SET.has(key.toLowerCase()) ||
+    SENSITIVE_KEY_PATTERN.test(key)
+  );
 }

@@ -1,6 +1,10 @@
 import type { PanelExtensionPoint } from "@fluxo/forge";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import type { PanelContributionPropsMap, PanelSlotProps, RenderablePanelContribution } from "./types";
+import type {
+  PanelContributionPropsMap,
+  PanelSlotProps,
+  RenderablePanelContribution,
+} from "./types";
 import { usePluginExtensions } from "./use-plugin-extensions";
 
 interface BoundaryProps {
@@ -13,7 +17,10 @@ interface BoundaryState {
   failed: boolean;
 }
 
-class PluginContributionBoundary extends Component<BoundaryProps, BoundaryState> {
+class PluginContributionBoundary extends Component<
+  BoundaryProps,
+  BoundaryState
+> {
   override state: BoundaryState = { failed: false };
 
   static getDerivedStateFromError(): BoundaryState {

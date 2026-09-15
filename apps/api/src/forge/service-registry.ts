@@ -45,7 +45,8 @@ const POWER_CAPABILITY = {
   stop: "power.stop",
   restart: "power.restart",
 } as const satisfies Record<PowerRequest["action"], ServiceCapability>;
-const SENSITIVE_MESSAGE = /password|secret|token|authorization|ciphertext|api[_-]?key|bearer\s|encryptedpayload/i;
+const SENSITIVE_MESSAGE =
+  /password|secret|token|authorization|ciphertext|api[_-]?key|bearer\s|encryptedpayload/i;
 
 export interface ServiceRegistryDeps {
   persist: PluginPersist;
@@ -65,7 +66,9 @@ export interface HostProvisionResult extends ProvisionResult {
 export interface BoundServiceProvider extends ResolvedServiceProvider {
   supports(capability: ServiceCapability): boolean;
   capabilities(): readonly ServiceCapability[];
-  provisioningVariables(): ReturnType<FluxoServicePlugin["provisioningVariables"]>;
+  provisioningVariables(): ReturnType<
+    FluxoServicePlugin["provisioningVariables"]
+  >;
   provisionService(
     input: Omit<ProvisionRequest, "instanceId" | "action">,
   ): Promise<HostProvisionResult>;
@@ -78,7 +81,9 @@ export interface BoundServiceProvider extends ResolvedServiceProvider {
   terminate(
     input: Omit<ProvisionRequest, "instanceId" | "action">,
   ): Promise<HostProvisionResult>;
-  getService(input: Omit<ReconcileRequest, "instanceId">): Promise<HostProvisionResult>;
+  getService(
+    input: Omit<ReconcileRequest, "instanceId">,
+  ): Promise<HostProvisionResult>;
   power(input: Omit<PowerRequest, "instanceId">): Promise<PowerResult>;
   health(): Promise<PluginHealthSnapshot>;
 }
@@ -104,18 +109,24 @@ interface StoredServiceState {
   runtime?: Record<string, JsonValue>;
 }
 
-export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceRegistry {
+export function createServiceRegistry(
+  deps: ServiceRegistryDeps,
+): HostServiceRegistry {
   const persist = deps.persist;
   const healthTimeoutMs = deps.healthTimeoutMs ?? FORGE_HEALTH_TIMEOUT_MS;
 
-  async function listInstances(pluginId?: PluginId): Promise<readonly ServiceInstance[]> {
+  async function listInstances(
+    pluginId?: PluginId,
+  ): Promise<readonly ServiceInstance[]> {
     const rows = await persist.listInstances(
       pluginId === undefined ? undefined : parsePluginId(pluginId),
     );
     return rows.filter((row) => row.kind === "service").map(toServiceInstance);
   }
 
-  async function getInstance(instanceId: string): Promise<ServiceInstance | null> {
+  async function getInstance(
+    instanceId: string,
+  ): Promise<ServiceInstance | null> {
     const id = parseInstanceId(instanceId);
     const row = await persist.getInstance(id);
     if (row === undefined || row.kind !== "service") {
@@ -207,9 +218,16 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
     return provider;
   }
 
-  async function contextFor(pluginId: string, instanceId: string): Promise<PluginContext> {
+  async function contextFor(
+    pluginId: string,
+    instanceId: string,
+  ): Promise<PluginContext> {
     if (!deps.createContext) {
-      throw new ForgeError("forge_plugin_failed", "Plugin context is not configured", 500);
+      throw new ForgeError(
+        "forge_plugin_failed",
+        "Plugin context is not configured",
+        500,
+      );
     }
     const ctx = await deps.createContext(pluginId, instanceId);
     if (ctx.pluginId === pluginId && ctx.instanceId === instanceId) {
@@ -253,7 +271,11 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
     advertised: readonly ServiceCapability[],
     input: Omit<ReconcileRequest, "instanceId">,
   ): Promise<HostProvisionResult> {
-    const stored = await loadServiceState(instance.pluginId, instance.id, input.serviceId);
+    const stored = await loadServiceState(
+      instance.pluginId,
+      instance.id,
+      input.serviceId,
+    );
     const remoteId = input.remoteId ?? stored?.remoteId;
     if (plugin.reconcile && advertised.includes("provision.reconcile")) {
       const ctx = await contextFor(instance.pluginId, instance.id);
@@ -273,12 +295,17 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
         stored?.operationId ?? randomUUID(),
       );
       if (result.status !== "failed") {
-        await persistServiceState(instance.pluginId, instance.id, input.serviceId, {
-          remoteId: result.remoteId ?? remoteId,
-          status: result.status,
-          operationId: result.operationId,
-          runtime: asRuntime(result.runtime),
-        });
+        await persistServiceState(
+          instance.pluginId,
+          instance.id,
+          input.serviceId,
+          {
+            remoteId: result.remoteId ?? remoteId,
+            status: result.status,
+            operationId: result.operationId,
+            runtime: asRuntime(result.runtime),
+          },
+        );
       }
       return result;
     }
@@ -348,7 +375,10 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
 
     try {
       const ctx = await contextFor(instance.pluginId, instance.id);
-      const raw = await Promise.race([plugin.health(ctx, controller.signal), timeout]);
+      const raw = await Promise.race([
+        plugin.health(ctx, controller.signal),
+        timeout,
+      ]);
       const message = sanitizeMessage(raw.message);
       return {
         status: raw.status,
@@ -377,7 +407,12 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
   ): Promise<HostProvisionResult | undefined> {
     const stored = await persist.getKv(
       instance.pluginId,
-      idempotencyKey(instance.id, request.serviceId, request.action, request.idempotencyKey),
+      idempotencyKey(
+        instance.id,
+        request.serviceId,
+        request.action,
+        request.idempotencyKey,
+      ),
     );
     const record = parseStoredOperation(stored);
     if (record === undefined) {
@@ -410,15 +445,25 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
     };
     await persist.setKv(
       instance.pluginId,
-      idempotencyKey(instance.id, request.serviceId, request.action, request.idempotencyKey),
+      idempotencyKey(
+        instance.id,
+        request.serviceId,
+        request.action,
+        request.idempotencyKey,
+      ),
       operationRecord(operation),
     );
-    await persistServiceState(instance.pluginId, instance.id, request.serviceId, {
-      remoteId: result.remoteId,
-      status: result.status,
-      operationId: result.operationId,
-      runtime,
-    });
+    await persistServiceState(
+      instance.pluginId,
+      instance.id,
+      request.serviceId,
+      {
+        remoteId: result.remoteId,
+        status: result.status,
+        operationId: result.operationId,
+        runtime,
+      },
+    );
   }
 
   async function persistServiceState(
@@ -430,7 +475,9 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
     await persist.setKv(pluginId, serviceStateKey(instanceId, serviceId), {
       ...(state.remoteId === undefined ? {} : { remoteId: state.remoteId }),
       status: state.status,
-      ...(state.operationId === undefined ? {} : { operationId: state.operationId }),
+      ...(state.operationId === undefined
+        ? {}
+        : { operationId: state.operationId }),
       ...(state.runtime === undefined ? {} : { runtime: state.runtime }),
     });
   }
@@ -440,7 +487,10 @@ export function createServiceRegistry(deps: ServiceRegistryDeps): HostServiceReg
     instanceId: string,
     serviceId: string,
   ): Promise<StoredServiceState | undefined> {
-    const stored = await persist.getKv(pluginId, serviceStateKey(instanceId, serviceId));
+    const stored = await persist.getKv(
+      pluginId,
+      serviceStateKey(instanceId, serviceId),
+    );
     return parseStoredState(stored);
   }
 
@@ -460,7 +510,9 @@ function toServiceInstance(row: PluginInstanceRow): ServiceInstance {
   };
 }
 
-function isServicePlugin(value: FluxoServicePlugin | undefined): value is FluxoServicePlugin {
+function isServicePlugin(
+  value: FluxoServicePlugin | undefined,
+): value is FluxoServicePlugin {
   return (
     value !== undefined &&
     typeof value.capabilities === "function" &&
@@ -469,7 +521,9 @@ function isServicePlugin(value: FluxoServicePlugin | undefined): value is FluxoS
   );
 }
 
-function readCapabilities(plugin: FluxoServicePlugin): readonly ServiceCapability[] {
+function readCapabilities(
+  plugin: FluxoServicePlugin,
+): readonly ServiceCapability[] {
   let raw: readonly string[];
   try {
     raw = plugin.capabilities();
@@ -500,7 +554,9 @@ function assertCapability(
   capability: ServiceCapability,
 ): void {
   if (!advertised.includes(capability)) {
-    throw new ForgeValidationError(`Service capability not supported: ${capability}`);
+    throw new ForgeValidationError(
+      `Service capability not supported: ${capability}`,
+    );
   }
 }
 
@@ -523,7 +579,10 @@ function bindProvisionRequest(
   return request;
 }
 
-function toHostProvisionResult(raw: ProvisionResult, fallbackOperationId: string): HostProvisionResult {
+function toHostProvisionResult(
+  raw: ProvisionResult,
+  fallbackOperationId: string,
+): HostProvisionResult {
   const operationId = readOperationId(raw.runtime) ?? fallbackOperationId;
   const message = sanitizeMessage(raw.message);
   const runtime = asRuntime(raw.runtime);
@@ -531,13 +590,17 @@ function toHostProvisionResult(raw: ProvisionResult, fallbackOperationId: string
     status: raw.status,
     operationId,
     ...(raw.remoteId === undefined ? {} : { remoteId: raw.remoteId }),
-    ...(raw.idempotentReplay === undefined ? {} : { idempotentReplay: raw.idempotentReplay }),
+    ...(raw.idempotentReplay === undefined
+      ? {}
+      : { idempotentReplay: raw.idempotentReplay }),
     ...(message === undefined ? {} : { message }),
     ...(runtime === undefined ? {} : { runtime }),
   };
 }
 
-function readOperationId(runtime: ProvisionResult["runtime"]): string | undefined {
+function readOperationId(
+  runtime: ProvisionResult["runtime"],
+): string | undefined {
   if (runtime === undefined || typeof runtime.operationId !== "string") {
     return undefined;
   }
@@ -554,7 +617,12 @@ function asRuntime(
     return undefined;
   }
   const parsed = jsonValueSchema.safeParse(runtime);
-  if (!parsed.success || typeof parsed.data !== "object" || parsed.data === null || Array.isArray(parsed.data)) {
+  if (
+    !parsed.success ||
+    typeof parsed.data !== "object" ||
+    parsed.data === null ||
+    Array.isArray(parsed.data)
+  ) {
     return undefined;
   }
   try {
@@ -565,15 +633,28 @@ function asRuntime(
   return parsed.data;
 }
 
-function parseStoredOperation(value: JsonValue | undefined): StoredOperation | undefined {
-  if (value === undefined || typeof value !== "object" || value === null || Array.isArray(value)) {
+function parseStoredOperation(
+  value: JsonValue | undefined,
+): StoredOperation | undefined {
+  if (
+    value === undefined ||
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value)
+  ) {
     return undefined;
   }
   const record = value;
-  if (typeof record.action !== "string" || !(record.action in ACTION_CAPABILITY)) {
+  if (
+    typeof record.action !== "string" ||
+    !(record.action in ACTION_CAPABILITY)
+  ) {
     return undefined;
   }
-  if (typeof record.idempotencyKey !== "string" || typeof record.operationId !== "string") {
+  if (
+    typeof record.idempotencyKey !== "string" ||
+    typeof record.operationId !== "string"
+  ) {
     return undefined;
   }
   if (
@@ -585,7 +666,9 @@ function parseStoredOperation(value: JsonValue | undefined): StoredOperation | u
     return undefined;
   }
   const runtime = asRuntime(
-    record.runtime !== undefined && typeof record.runtime === "object" && record.runtime !== null
+    record.runtime !== undefined &&
+      typeof record.runtime === "object" &&
+      record.runtime !== null
       ? (record.runtime as Record<string, JsonValue>)
       : undefined,
   );
@@ -594,14 +677,23 @@ function parseStoredOperation(value: JsonValue | undefined): StoredOperation | u
     idempotencyKey: record.idempotencyKey,
     operationId: record.operationId,
     status: record.status,
-    ...(typeof record.remoteId === "string" ? { remoteId: record.remoteId } : {}),
+    ...(typeof record.remoteId === "string"
+      ? { remoteId: record.remoteId }
+      : {}),
     ...(typeof record.message === "string" ? { message: record.message } : {}),
     ...(runtime === undefined ? {} : { runtime }),
   };
 }
 
-function parseStoredState(value: JsonValue | undefined): StoredServiceState | undefined {
-  if (value === undefined || typeof value !== "object" || value === null || Array.isArray(value)) {
+function parseStoredState(
+  value: JsonValue | undefined,
+): StoredServiceState | undefined {
+  if (
+    value === undefined ||
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value)
+  ) {
     return undefined;
   }
   const record = value;
@@ -614,14 +706,20 @@ function parseStoredState(value: JsonValue | undefined): StoredServiceState | un
     return undefined;
   }
   const runtime = asRuntime(
-    record.runtime !== undefined && typeof record.runtime === "object" && record.runtime !== null
+    record.runtime !== undefined &&
+      typeof record.runtime === "object" &&
+      record.runtime !== null
       ? (record.runtime as Record<string, JsonValue>)
       : undefined,
   );
   return {
     status: record.status,
-    ...(typeof record.remoteId === "string" ? { remoteId: record.remoteId } : {}),
-    ...(typeof record.operationId === "string" ? { operationId: record.operationId } : {}),
+    ...(typeof record.remoteId === "string"
+      ? { remoteId: record.remoteId }
+      : {}),
+    ...(typeof record.operationId === "string"
+      ? { operationId: record.operationId }
+      : {}),
     ...(runtime === undefined ? {} : { runtime }),
   };
 }
@@ -632,7 +730,9 @@ function operationRecord(operation: StoredOperation): JsonValue {
     idempotencyKey: operation.idempotencyKey,
     operationId: operation.operationId,
     status: operation.status,
-    ...(operation.remoteId === undefined ? {} : { remoteId: operation.remoteId }),
+    ...(operation.remoteId === undefined
+      ? {}
+      : { remoteId: operation.remoteId }),
     ...(operation.message === undefined ? {} : { message: operation.message }),
     ...(operation.runtime === undefined ? {} : { runtime: operation.runtime }),
   };

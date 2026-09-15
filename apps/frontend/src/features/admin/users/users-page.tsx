@@ -1,4 +1,8 @@
-import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
+import {
+  PluginSlot,
+  toPluginPublicSettings,
+  toPluginUserView,
+} from "@/plugin-system";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { useCreateUser } from "@/hooks/use-create-user";
 import { useDeleteUser } from "@/hooks/use-delete-user";
@@ -27,7 +31,8 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
   const del = useDeleteUser();
   const settings = usePublicSettings();
   const session = useSession();
-  const actor = session.data?.status === "authenticated" ? session.data.user : undefined;
+  const actor =
+    session.data?.status === "authenticated" ? session.data.user : undefined;
 
   return (
     <Card>
@@ -40,7 +45,9 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
       </CardHeader>
       <CardContent className="pt-4">
         {users.apiUrl === undefined ? (
-          <p className="text-sm text-muted-foreground">{t("admin.users.missingApi")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.users.missingApi")}
+          </p>
         ) : null}
         {users.isPending ? (
           <div className="flex flex-col gap-2">
@@ -56,7 +63,9 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
           </Alert>
         ) : null}
         {users.users && users.users.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("admin.users.empty")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.users.empty")}
+          </p>
         ) : null}
         {users.users && users.users.length > 0 ? (
           <UsersTable

@@ -31,7 +31,11 @@ function capturingLogger(): { logger: PluginLogger; entries: unknown[] } {
 }
 
 async function listen(
-  handler: (req: IncomingMessage) => { status: number; body: string; headers?: Record<string, string> },
+  handler: (req: IncomingMessage) => {
+    status: number;
+    body: string;
+    headers?: Record<string, string>;
+  },
 ): Promise<{ origin: string; close: () => Promise<void> }> {
   const server: Server = createServer((req, res) => {
     const result = handler(req);
@@ -139,7 +143,10 @@ describe("plugin http allowlist", () => {
     });
     await http.request({
       url: "http://127.0.0.1/v1",
-      headers: { Authorization: "Bearer super-secret-token", Cookie: "sid=abc" },
+      headers: {
+        Authorization: "Bearer super-secret-token",
+        Cookie: "sid=abc",
+      },
     });
     const dumped = JSON.stringify(entries);
     expect(dumped).not.toContain("super-secret-token");
@@ -183,6 +190,8 @@ describe("isHttpHostAllowed", () => {
     expect(isHttpHostAllowed(url, ["panel.example.com"])).toBe(true);
     expect(isHttpHostAllowed(url, ["other.example.com"])).toBe(false);
     expect(isHttpHostAllowed(url, ["panel.example.com:443"])).toBe(true);
-    expect(isHttpHostAllowed(new URL("http://10.0.0.12/x"), ["10.0.0.12"])).toBe(true);
+    expect(
+      isHttpHostAllowed(new URL("http://10.0.0.12/x"), ["10.0.0.12"]),
+    ).toBe(true);
   });
 });

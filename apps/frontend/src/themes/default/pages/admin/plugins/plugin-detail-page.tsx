@@ -44,10 +44,16 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
       <Card>
         <CardHeader>
           <CardTitle>{t("admin.plugins.detail.notFoundTitle")}</CardTitle>
-          <CardDescription>{t("admin.plugins.detail.notFoundDescription")}</CardDescription>
+          <CardDescription>
+            {t("admin.plugins.detail.notFoundDescription")}
+          </CardDescription>
         </CardHeader>
         <CardFooter>
-          <Button nativeButton={false} render={<Link to="/admin/plugins" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link to="/admin/plugins" />}
+            variant="outline"
+          >
             {t("admin.plugins.detail.back")}
           </Button>
         </CardFooter>
@@ -70,37 +76,55 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
       <Card>
         <CardHeader>
           <CardTitle>{plugin.name}</CardTitle>
-          <CardDescription>{t("admin.plugins.detail.metaDescription")}</CardDescription>
+          <CardDescription>
+            {t("admin.plugins.detail.metaDescription")}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <p className="text-xs text-muted-foreground">{t("admin.plugins.column.id")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.plugins.column.id")}
+              </p>
               <p className="font-mono text-sm">{plugin.id}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{t("admin.plugins.column.version")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.plugins.column.version")}
+              </p>
               <p className="text-sm">{plugin.version}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{t("admin.plugins.column.type")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.plugins.column.type")}
+              </p>
               <Badge variant="secondary">{plugin.type}</Badge>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{t("admin.plugins.column.status")}</p>
-              <Badge variant={plugin.status === "error" ? "destructive" : "outline"}>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.plugins.column.status")}
+              </p>
+              <Badge
+                variant={plugin.status === "error" ? "destructive" : "outline"}
+              >
                 {t(`admin.plugins.status.${plugin.status}`)}
               </Badge>
             </div>
             {plugin.author ? (
               <div>
-                <p className="text-xs text-muted-foreground">{t("admin.plugins.detail.author")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.plugins.detail.author")}
+                </p>
                 <p className="text-sm">{plugin.author}</p>
               </div>
             ) : null}
             <div>
-              <p className="text-xs text-muted-foreground">{t("admin.plugins.column.compatibility")}</p>
-              <Badge variant={plugin.compatibility.ok ? "secondary" : "destructive"}>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.plugins.column.compatibility")}
+              </p>
+              <Badge
+                variant={plugin.compatibility.ok ? "secondary" : "destructive"}
+              >
                 {plugin.compatibility.ok
                   ? t("admin.plugins.compatible")
                   : t("admin.plugins.incompatible")}
@@ -108,7 +132,9 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
             </div>
           </div>
           {plugin.description ? (
-            <p className="text-sm text-muted-foreground">{plugin.description}</p>
+            <p className="text-sm text-muted-foreground">
+              {plugin.description}
+            </p>
           ) : null}
           {plugin.error ? (
             <Alert variant="destructive">
@@ -117,9 +143,13 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
             </Alert>
           ) : null}
           <div>
-            <p className="mb-2 text-xs text-muted-foreground">{t("admin.plugins.detail.permissions")}</p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {t("admin.plugins.detail.permissions")}
+            </p>
             {plugin.permissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("admin.plugins.detail.noPermissions")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("admin.plugins.detail.noPermissions")}
+              </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {plugin.permissions.map((permission) => (
@@ -131,7 +161,11 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
             )}
           </div>
           {model.health ? (
-            <Alert variant={model.health.status === "unhealthy" ? "destructive" : "default"}>
+            <Alert
+              variant={
+                model.health.status === "unhealthy" ? "destructive" : "default"
+              }
+            >
               <AlertTitle>{healthLabel}</AlertTitle>
               {model.health.message ? (
                 <AlertDescription>{model.health.message}</AlertDescription>
@@ -140,7 +174,11 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
           ) : null}
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2">
-          <Button nativeButton={false} render={<Link to="/admin/plugins" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link to="/admin/plugins" />}
+            variant="outline"
+          >
             {t("admin.plugins.detail.back")}
           </Button>
           {plugin.enabled ? (
@@ -154,7 +192,11 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
               {t("admin.plugins.detail.disable")}
             </Button>
           ) : (
-            <Button type="button" disabled={model.enablePending} onClick={model.onEnable}>
+            <Button
+              type="button"
+              disabled={model.enablePending}
+              onClick={model.onEnable}
+            >
               {model.enablePending ? <Spinner /> : null}
               {t("admin.plugins.detail.enable")}
             </Button>
@@ -166,24 +208,42 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
             onClick={model.onHealth}
           >
             {model.healthPending ? <Spinner /> : null}
-            {model.healthPending ? t("admin.plugins.detail.checking") : t("admin.plugins.detail.health")}
+            {model.healthPending
+              ? t("admin.plugins.detail.checking")
+              : t("admin.plugins.detail.health")}
           </Button>
-          <Dialog open={model.uninstallOpen} onOpenChange={model.setUninstallOpen}>
-            <Button type="button" variant="destructive" onClick={() => model.setUninstallOpen(true)}>
+          <Dialog
+            open={model.uninstallOpen}
+            onOpenChange={model.setUninstallOpen}
+          >
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => model.setUninstallOpen(true)}
+            >
               {t("admin.plugins.detail.uninstall")}
             </Button>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>
-                  {t("admin.plugins.detail.uninstallTitle", { name: plugin.name })}
+                  {t("admin.plugins.detail.uninstallTitle", {
+                    name: plugin.name,
+                  })}
                 </DialogTitle>
-                <DialogDescription>{t("admin.plugins.detail.uninstallDescription")}</DialogDescription>
+                <DialogDescription>
+                  {t("admin.plugins.detail.uninstallDescription")}
+                </DialogDescription>
               </DialogHeader>
-              <label htmlFor="plugin-purge" className="flex items-center gap-2 text-sm">
+              <label
+                htmlFor="plugin-purge"
+                className="flex items-center gap-2 text-sm"
+              >
                 <Checkbox
                   id="plugin-purge"
                   checked={model.purgeStorage}
-                  onCheckedChange={(value) => model.setPurgeStorage(value === true)}
+                  onCheckedChange={(value) =>
+                    model.setPurgeStorage(value === true)
+                  }
                 />
                 <span>{t("admin.plugins.detail.purge")}</span>
               </label>
@@ -218,7 +278,9 @@ export function AdminPluginDetailPage({ model }: { model: AdminPluginModel }) {
         description={t("admin.plugins.detail.configDescription")}
       />
 
-      {model.supportsInstances ? <AdminPluginInstancesCard model={model} /> : null}
+      {model.supportsInstances ? (
+        <AdminPluginInstancesCard model={model} />
+      ) : null}
     </div>
   );
 }

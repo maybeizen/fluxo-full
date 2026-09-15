@@ -23,8 +23,12 @@ export function SettingsLayout({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-medium tracking-tight">{t("settings.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("settings.description")}</p>
+        <h1 className="font-heading text-2xl font-medium tracking-tight">
+          {t("settings.title")}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.description")}
+        </p>
       </div>
       <Tabs defaultValue={tab ?? "profile"}>
         <TabsList variant="line">

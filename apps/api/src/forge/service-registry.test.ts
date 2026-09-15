@@ -17,7 +17,10 @@ import {
 } from "@fluxo/forge";
 import { describe, expect, it } from "vitest";
 import { createMemoryPluginPersist, createPluginStorage } from "./persist.js";
-import { createServiceRegistry, type ServiceRegistryDeps } from "./service-registry.js";
+import {
+  createServiceRegistry,
+  type ServiceRegistryDeps,
+} from "./service-registry.js";
 
 const SERVICE_ID = "acme.compute";
 const GATEWAY_ID = "acme.pay";
@@ -68,7 +71,10 @@ class TestServicePlugin extends FluxoServicePlugin {
     return [];
   }
 
-  async provision(ctx: PluginContext, request: ProvisionRequest): Promise<ProvisionResult> {
+  async provision(
+    ctx: PluginContext,
+    request: ProvisionRequest,
+  ): Promise<ProvisionResult> {
     if (this.provisionImpl) {
       return this.provisionImpl(ctx, request);
     }
@@ -142,7 +148,10 @@ function fakeContext(
 
 async function seedServiceInstall(
   persist: ReturnType<typeof createMemoryPluginPersist>,
-  options?: { enabled?: boolean; status?: "enabled" | "started" | "disabled" | "error" },
+  options?: {
+    enabled?: boolean;
+    status?: "enabled" | "started" | "disabled" | "error";
+  },
 ) {
   return persist.upsertInstall({
     id: SERVICE_ID,
@@ -154,22 +163,22 @@ async function seedServiceInstall(
   });
 }
 
-function createHarness(
-  options?: {
-    plugin?: TestServicePlugin;
-    active?: boolean;
-    persist?: ReturnType<typeof createMemoryPluginPersist>;
-    healthTimeoutMs?: number;
-  },
-) {
+function createHarness(options?: {
+  plugin?: TestServicePlugin;
+  active?: boolean;
+  persist?: ReturnType<typeof createMemoryPluginPersist>;
+  healthTimeoutMs?: number;
+}) {
   const persist = options?.persist ?? createMemoryPluginPersist();
   const plugin = options?.plugin ?? new TestServicePlugin();
   const active = options?.active ?? true;
   const deps: ServiceRegistryDeps = {
     persist,
-    getServicePlugin: (pluginId) => (pluginId === SERVICE_ID ? plugin : undefined),
+    getServicePlugin: (pluginId) =>
+      pluginId === SERVICE_ID ? plugin : undefined,
     isPluginActive: (pluginId) => active && pluginId === SERVICE_ID,
-    createContext: (pluginId, instanceId) => fakeContext(persist, pluginId, instanceId),
+    createContext: (pluginId, instanceId) =>
+      fakeContext(persist, pluginId, instanceId),
     ...(options?.healthTimeoutMs === undefined
       ? {}
       : { healthTimeoutMs: options.healthTimeoutMs }),
@@ -212,7 +221,10 @@ describe("createServiceRegistry", () => {
 
     const listed = await registry.listInstances(SERVICE_ID);
     expect(listed).toHaveLength(2);
-    expect(listed.map((item) => item.displayName).sort()).toEqual(["East", "West"]);
+    expect(listed.map((item) => item.displayName).sort()).toEqual([
+      "East",
+      "West",
+    ]);
 
     const eastProvider = await registry.resolve(east.id);
     const westProvider = await registry.resolve(west.id);
@@ -223,8 +235,12 @@ describe("createServiceRegistry", () => {
     expect(eastProvider.instance.displayName).toBe("East");
     expect(westProvider.instance.displayName).toBe("West");
 
-    const eastResult = await eastProvider.provisionService(provisionInput("svc-shared"));
-    const westResult = await westProvider.provisionService(provisionInput("svc-shared"));
+    const eastResult = await eastProvider.provisionService(
+      provisionInput("svc-shared"),
+    );
+    const westResult = await westProvider.provisionService(
+      provisionInput("svc-shared"),
+    );
     expect(eastResult.remoteId).toBe(`remote-svc-shared-${east.id}`);
     expect(westResult.remoteId).toBe(`remote-svc-shared-${west.id}`);
     expect(eastResult.remoteId).not.toBe(westResult.remoteId);
@@ -266,10 +282,15 @@ describe("createServiceRegistry", () => {
       persist,
       getServicePlugin: () => new TestServicePlugin(),
       isPluginActive: () => false,
-      createContext: (pluginId, instanceId) => fakeContext(persist, pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(persist, pluginId, instanceId),
     });
-    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(ForgeConflictError);
-    await expect(registry.resolve(instance.id)).rejects.toThrow("Service plugin is disabled");
+    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(
+      ForgeConflictError,
+    );
+    await expect(registry.resolve(instance.id)).rejects.toThrow(
+      "Service plugin is disabled",
+    );
   });
 
   it("returns a typed error when the instance is disabled", async () => {
@@ -281,8 +302,12 @@ describe("createServiceRegistry", () => {
       displayName: "Primary",
       enabled: false,
     });
-    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(ForgeConflictError);
-    await expect(registry.resolve(instance.id)).rejects.toThrow("Service instance is disabled");
+    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(
+      ForgeConflictError,
+    );
+    await expect(registry.resolve(instance.id)).rejects.toThrow(
+      "Service instance is disabled",
+    );
     expect(await registry.getInstance(instance.id)).toMatchObject({
       id: instance.id,
       enabled: false,
@@ -305,15 +330,23 @@ describe("createServiceRegistry", () => {
       displayName: "Checkout",
       enabled: true,
     });
-    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(ForgeValidationError);
-    await expect(registry.resolve(instance.id)).rejects.toThrow("Instance is not a service provider");
+    await expect(registry.resolve(instance.id)).rejects.toBeInstanceOf(
+      ForgeValidationError,
+    );
+    await expect(registry.resolve(instance.id)).rejects.toThrow(
+      "Instance is not a service provider",
+    );
     expect(await registry.getInstance(instance.id)).toBeNull();
     expect(await registry.listInstances()).toEqual([]);
   });
 
   it("advertises capabilities without checking plugin id", async () => {
     const plugin = new TestServicePlugin();
-    plugin.advertised = ["provision.create", "usage.view", "pterodactyl.console" as ServiceCapability];
+    plugin.advertised = [
+      "provision.create",
+      "usage.view",
+      "pterodactyl.console" as ServiceCapability,
+    ];
     const { persist, registry } = createHarness({ plugin });
     await seedServiceInstall(persist);
     const instance = await persist.createInstance({
@@ -328,16 +361,22 @@ describe("createServiceRegistry", () => {
     expect(provider.supports("usage.view")).toBe(true);
     expect(provider.supports("backup.create")).toBe(false);
     expect(provider.capabilities()).toEqual(["provision.create", "usage.view"]);
-    expect(provider.capabilities().every((capability) => SERVICE_CAPABILITIES.includes(capability))).toBe(
-      true,
-    );
-    expect(SERVICE_CAPABILITIES.includes("pterodactyl.console" as ServiceCapability)).toBe(false);
+    expect(
+      provider
+        .capabilities()
+        .every((capability) => SERVICE_CAPABILITIES.includes(capability)),
+    ).toBe(true);
+    expect(
+      SERVICE_CAPABILITIES.includes("pterodactyl.console" as ServiceCapability),
+    ).toBe(false);
   });
 
   it("isolates provision throws without leaking secrets", async () => {
     const plugin = new TestServicePlugin();
     plugin.provisionImpl = async () => {
-      throw new Error(`upstream failed token=${SECRET}\n    at Plugin.provision`);
+      throw new Error(
+        `upstream failed token=${SECRET}\n    at Plugin.provision`,
+      );
     };
     const { persist, registry } = createHarness({ plugin });
     await seedServiceInstall(persist);
@@ -348,12 +387,20 @@ describe("createServiceRegistry", () => {
       enabled: true,
     });
     const provider = await registry.resolve(instance.id);
-    const error = await provider.provisionService(provisionInput("svc-1")).catch((thrown: unknown) => thrown);
+    const error = await provider
+      .provisionService(provisionInput("svc-1"))
+      .catch((thrown: unknown) => thrown);
     expect(error).toBeInstanceOf(ForgeError);
-    expect((error as ForgeError).message).toBe("Service plugin operation failed");
+    expect((error as ForgeError).message).toBe(
+      "Service plugin operation failed",
+    );
     expect((error as ForgeError).message).not.toContain(SECRET);
-    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(SECRET);
-    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain("at Plugin.provision");
+    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(
+      SECRET,
+    );
+    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(
+      "at Plugin.provision",
+    );
   });
 
   it("persists remote id and idempotency or operation id fields", async () => {
@@ -366,24 +413,34 @@ describe("createServiceRegistry", () => {
       enabled: true,
     });
     const provider = await registry.resolve(instance.id);
-    const first = await provider.provisionService(provisionInput("svc-1", "idem-create"));
+    const first = await provider.provisionService(
+      provisionInput("svc-1", "idem-create"),
+    );
     expect(first.status).toBe("ok");
     expect(first.remoteId).toBe(`remote-svc-1-${instance.id}`);
     expect(first.operationId).toBe("op-idem-create");
     expect(first.idempotentReplay).toBeUndefined();
 
-    const replay = await provider.provisionService(provisionInput("svc-1", "idem-create"));
+    const replay = await provider.provisionService(
+      provisionInput("svc-1", "idem-create"),
+    );
     expect(replay.idempotentReplay).toBe(true);
     expect(replay.remoteId).toBe(first.remoteId);
     expect(replay.operationId).toBe(first.operationId);
 
-    const state = await persist.getKv(SERVICE_ID, `forge/service/${instance.id}/svc-1/state`);
+    const state = await persist.getKv(
+      SERVICE_ID,
+      `forge/service/${instance.id}/svc-1/state`,
+    );
     expect(state).toMatchObject({
       remoteId: first.remoteId,
       operationId: first.operationId,
       status: "ok",
     });
-    const keys = await persist.listKvKeys(SERVICE_ID, `forge/service/${instance.id}/svc-1/`);
+    const keys = await persist.listKvKeys(
+      SERVICE_ID,
+      `forge/service/${instance.id}/svc-1/`,
+    );
     expect(keys.some((key) => key.includes("/idemp/"))).toBe(true);
     expect(keys.some((key) => key.endsWith("/state"))).toBe(true);
   });
@@ -401,7 +458,10 @@ describe("createServiceRegistry", () => {
         }
         signal.addEventListener("abort", fail);
       });
-    const { persist, registry } = createHarness({ plugin, healthTimeoutMs: 30 });
+    const { persist, registry } = createHarness({
+      plugin,
+      healthTimeoutMs: 30,
+    });
     await seedServiceInstall(persist);
     const instance = await persist.createInstance({
       pluginId: SERVICE_ID,
@@ -412,15 +472,22 @@ describe("createServiceRegistry", () => {
     const provider = await registry.resolve(instance.id);
     const error = await provider.health().catch((thrown: unknown) => thrown);
     expect(error).toBeInstanceOf(ForgeTimeoutError);
-    expect((error as ForgeTimeoutError).message).toBe("Service health check timed out");
+    expect((error as ForgeTimeoutError).message).toBe(
+      "Service health check timed out",
+    );
     expect((error as ForgeTimeoutError).message).not.toContain(SECRET);
-    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(SECRET);
+    expect(JSON.stringify(forgeErrorBody(error as ForgeError))).not.toContain(
+      SECRET,
+    );
     expect(FORGE_HEALTH_TIMEOUT_MS).toBe(5000);
   });
 
   it("redacts secret health messages from successful checks", async () => {
     const plugin = new TestServicePlugin();
-    plugin.healthImpl = async () => ({ status: "ok", message: `connected token=${SECRET}` });
+    plugin.healthImpl = async () => ({
+      status: "ok",
+      message: `connected token=${SECRET}`,
+    });
     const { persist, registry } = createHarness({ plugin });
     await seedServiceInstall(persist);
     const instance = await persist.createInstance({
@@ -448,9 +515,12 @@ describe("createServiceRegistry", () => {
       persist,
       getServicePlugin: () => new TestServicePlugin(),
       isPluginActive: () => true,
-      createContext: (pluginId, instanceId) => fakeContext(persist, pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(persist, pluginId, instanceId),
     });
-    const error = await registry.resolve(instance.id).catch((thrown: unknown) => thrown);
+    const error = await registry
+      .resolve(instance.id)
+      .catch((thrown: unknown) => thrown);
     expect(error).toBeInstanceOf(ForgeError);
     expect((error as ForgeError).code).toBe("forge_plugin_failed");
   });

@@ -34,10 +34,34 @@ const mailManifest = {
   author: "Acme",
   permissions: ["config.read", "config.write"] as const,
   config: [
-    { key: "host", type: "text" as const, label: "Host", required: true, minLength: 1 },
-    { key: "port", type: "number" as const, label: "Port", integer: true, min: 1, max: 65535, default: 25 },
-    { key: "api_token", type: "secret" as const, label: "API token", required: true },
-    { key: "secure", type: "boolean" as const, label: "Secure", default: false },
+    {
+      key: "host",
+      type: "text" as const,
+      label: "Host",
+      required: true,
+      minLength: 1,
+    },
+    {
+      key: "port",
+      type: "number" as const,
+      label: "Port",
+      integer: true,
+      min: 1,
+      max: 65535,
+      default: 25,
+    },
+    {
+      key: "api_token",
+      type: "secret" as const,
+      label: "API token",
+      required: true,
+    },
+    {
+      key: "secure",
+      type: "boolean" as const,
+      label: "Secure",
+      default: false,
+    },
   ],
 };
 
@@ -69,7 +93,8 @@ function createFakeManager(options?: {
   const definitions = options?.definitions ?? [];
   const enabled: string[] = [];
   const disabled: string[] = [];
-  const plugin: FluxoPlugin | undefined = options?.plugin ??
+  const plugin: FluxoPlugin | undefined =
+    options?.plugin ??
     (options?.health
       ? {
           manifest: mailManifest,
@@ -94,10 +119,14 @@ function createFakeManager(options?: {
     },
     async uninstall() {},
     getActive(id) {
-      return plugin && definitions.some((item) => item.id === id) ? plugin : undefined;
+      return plugin && definitions.some((item) => item.id === id)
+        ? plugin
+        : undefined;
     },
     getPlugin(id) {
-      return plugin && definitions.some((item) => item.id === id) ? plugin : undefined;
+      return plugin && definitions.some((item) => item.id === id)
+        ? plugin
+        : undefined;
     },
   };
 }
@@ -141,7 +170,10 @@ async function register(
   });
 }
 
-async function login(app: Hono, overrides?: Partial<{ username: string; password: string }>) {
+async function login(
+  app: Hono,
+  overrides?: Partial<{ username: string; password: string }>,
+) {
   return app.request("/auth/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -249,7 +281,10 @@ describe("admin plugins api", () => {
   it("redacts secret values on GET config", async () => {
     const { app, persist, cookie } = await signedInAdmin();
     await seedMail(persist);
-    await persist.setKv("acme.mail", "fluxo/admin-config", { host: "smtp.example.com", port: 25 });
+    await persist.setKv("acme.mail", "fluxo/admin-config", {
+      host: "smtp.example.com",
+      port: 25,
+    });
     await persist.setSecret("acme.mail", "api_token", SECRET);
 
     const response = await app.request("/admin/plugins/acme.mail/config", {
@@ -264,7 +299,12 @@ describe("admin plugins api", () => {
     expect(body.values).toEqual({ host: "smtp.example.com", port: 25 });
     expect(body.values).not.toHaveProperty("api_token");
     expect(body.secretKeysSet).toEqual(["api_token"]);
-    expect(body.schema.map((field) => field.key)).toEqual(["host", "port", "api_token", "secure"]);
+    expect(body.schema.map((field) => field.key)).toEqual([
+      "host",
+      "port",
+      "api_token",
+      "secure",
+    ]);
     expect(JSON.stringify(body)).not.toContain(SECRET);
   });
 
@@ -275,7 +315,11 @@ describe("admin plugins api", () => {
     const response = await app.request("/admin/plugins/acme.mail/config", {
       method: "PUT",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ host: "smtp.example.com", port: "not-a-number", api_token: SECRET }),
+      body: JSON.stringify({
+        host: "smtp.example.com",
+        port: "not-a-number",
+        api_token: SECRET,
+      }),
     });
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error: string; code: string };
@@ -314,7 +358,10 @@ describe("admin plugins api", () => {
       body: JSON.stringify({ displayName: "Primary", enabled: true }),
     });
     expect(created.status).toBe(201);
-    const instance = (await created.json()) as { id: string; displayName: string };
+    const instance = (await created.json()) as {
+      id: string;
+      displayName: string;
+    };
 
     const put = await app.request(
       `/admin/plugins/acme.mail/instances/${instance.id}/config`,
@@ -329,7 +376,11 @@ describe("admin plugins api", () => {
       values: Record<string, unknown>;
       secretKeysSet: string[];
     };
-    expect(config.values).toEqual({ host: "smtp.example.com", port: 25, secure: false });
+    expect(config.values).toEqual({
+      host: "smtp.example.com",
+      port: 25,
+      secure: false,
+    });
     expect(config.secretKeysSet).toEqual(["api_token"]);
     expect(JSON.stringify(config)).not.toContain(SECRET);
 
@@ -337,7 +388,9 @@ describe("admin plugins api", () => {
       headers: { cookie },
     });
     const listBody = (await listed.json()) as {
-      instances: Array<{ config: { values: Record<string, unknown>; secretKeysSet: string[] } }>;
+      instances: Array<{
+        config: { values: Record<string, unknown>; secretKeysSet: string[] };
+      }>;
     };
     expect(JSON.stringify(listBody)).not.toContain(SECRET);
     expect(listBody.instances[0]?.config.secretKeysSet).toEqual(["api_token"]);
@@ -364,10 +417,13 @@ describe("admin plugins api", () => {
       version: "1.0.0",
       manifest: mailManifest,
     });
-    const purged = await app.request("/admin/plugins/acme.mail?purgeStorage=true", {
-      method: "DELETE",
-      headers: { cookie },
-    });
+    const purged = await app.request(
+      "/admin/plugins/acme.mail?purgeStorage=true",
+      {
+        method: "DELETE",
+        headers: { cookie },
+      },
+    );
     expect(purged.status).toBe(200);
     expect(await persist.getKv("acme.mail", "kept")).toBeUndefined();
     expect(await persist.getSecret("acme.mail", "api_token")).toBeNull();
@@ -414,7 +470,10 @@ describe("admin plugins api", () => {
       headers: { cookie },
     });
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string; message?: string };
+    const body = (await response.json()) as {
+      status: string;
+      message?: string;
+    };
     expect(body.status).toBe("unhealthy");
     expect(body.message).toContain("[redacted]");
     expect(JSON.stringify(body)).not.toContain(SECRET);

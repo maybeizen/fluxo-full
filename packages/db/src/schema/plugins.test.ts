@@ -37,7 +37,9 @@ describe("plugin schema", () => {
     const config = getTableConfig(pluginInstances);
     expect(config.foreignKeys).toHaveLength(1);
     expect(config.foreignKeys[0]?.onDelete).toBe("restrict");
-    expect(config.foreignKeys[0]?.reference().foreignTable).toBe(pluginInstalls);
+    expect(config.foreignKeys[0]?.reference().foreignTable).toBe(
+      pluginInstalls,
+    );
   });
 
   it("defines plugin_kv without a foreign key so uninstall retains rows", () => {

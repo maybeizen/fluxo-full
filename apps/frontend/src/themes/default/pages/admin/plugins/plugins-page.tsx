@@ -29,7 +29,9 @@ export function AdminPluginsPage({ model }: { model: AdminPluginsModel }) {
           <AlertDescription>{t("admin.plugins.trust")}</AlertDescription>
         </Alert>
         {model.apiUrl === undefined ? (
-          <p className="text-sm text-muted-foreground">{t("admin.plugins.missingApi")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.plugins.missingApi")}
+          </p>
         ) : null}
         {model.isPending ? (
           <div className="flex flex-col gap-2">
@@ -45,7 +47,9 @@ export function AdminPluginsPage({ model }: { model: AdminPluginsModel }) {
           </Alert>
         ) : null}
         {model.plugins && model.plugins.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("admin.plugins.empty")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.plugins.empty")}
+          </p>
         ) : null}
         {model.plugins && model.plugins.length > 0 ? (
           <AdminPluginsTable plugins={model.plugins} />

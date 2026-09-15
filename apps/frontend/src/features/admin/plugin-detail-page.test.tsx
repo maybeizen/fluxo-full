@@ -1,4 +1,8 @@
-import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
+import {
+  createMemoryHistory,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
@@ -9,7 +13,9 @@ import type { AdminPluginDetail } from "./plugins/types";
 
 const SECRET = "tok_live_must_not_render";
 
-function createDetail(overrides: Partial<AdminPluginDetail> = {}): AdminPluginDetail {
+function createDetail(
+  overrides: Partial<AdminPluginDetail> = {},
+): AdminPluginDetail {
   return {
     id: "acme.mail",
     type: "service",
@@ -47,7 +53,12 @@ function mockAdminApis(detail: AdminPluginDetail) {
         return jsonResponse({
           schema: [
             { key: "host", type: "text", label: "Host", required: true },
-            { key: "api_token", type: "secret", label: "API token", required: true },
+            {
+              key: "api_token",
+              type: "secret",
+              label: "API token",
+              required: true,
+            },
           ],
           values: { host: "smtp.example.com" },
           secretKeysSet: ["api_token"],
@@ -62,7 +73,10 @@ function mockAdminApis(detail: AdminPluginDetail) {
               kind: "service",
               displayName: "Primary",
               enabled: true,
-              config: { values: { host: "smtp.example.com" }, secretKeysSet: ["api_token"] },
+              config: {
+                values: { host: "smtp.example.com" },
+                secretKeysSet: ["api_token"],
+              },
             },
           ],
         });
@@ -105,7 +119,9 @@ describe("Admin plugin detail page", () => {
     expect(screen.getByText("acme.mail")).toBeInTheDocument();
     expect(screen.getByText("config.read")).toBeInTheDocument();
     expect(screen.getByLabelText("API token")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Saved — leave blank to keep")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Saved — leave blank to keep"),
+    ).toBeInTheDocument();
     expect(screen.queryByDisplayValue(SECRET)).not.toBeInTheDocument();
     expect(screen.queryByText(SECRET)).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("smtp.example.com")).toBeInTheDocument();

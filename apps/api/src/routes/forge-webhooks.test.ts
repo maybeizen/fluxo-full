@@ -178,7 +178,8 @@ async function setup(options?: {
       persist,
       getGatewayPlugin: () => plugin,
       isPluginActive: () => options?.active ?? true,
-      createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
       logger,
     }),
   );
@@ -248,7 +249,10 @@ describe("forgeWebhookRoutes", () => {
     const denied = forgeWebhookPath(PAY_ID, INSTANCE_A, "other");
     const ok = await app.request(allowed, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-psp-signature": "sig_abc" },
+      headers: {
+        "content-type": "application/json",
+        "x-psp-signature": "sig_abc",
+      },
       body: JSON.stringify({ event: "paid" }),
     });
     const blocked = await app.request(denied, {
@@ -264,7 +268,9 @@ describe("forgeWebhookRoutes", () => {
       JSON.stringify({ event: "paid" }),
     );
     expect(capture.request?.headers["x-psp-signature"]).toBe("sig_abc");
-    expect(capture.request?.headers["x-request-id"]).toEqual(expect.any(String));
+    expect(capture.request?.headers["x-request-id"]).toEqual(
+      expect.any(String),
+    );
 
     const otherInstance = await app.request(
       forgeWebhookPath(PAY_ID, INSTANCE_B, "notify"),
@@ -282,14 +288,17 @@ describe("forgeWebhookRoutes", () => {
       cvc: "123",
       secret: "sk_live_abc",
     });
-    const response = await app.request(forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: "Bearer sk_live_abc",
+    const response = await app.request(
+      forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer sk_live_abc",
+        },
+        body: secretBody,
       },
-      body: secretBody,
-    });
+    );
     expect(response.status).toBe(200);
     const logged = JSON.stringify([
       vi.mocked(logger.debug).mock.calls,
@@ -308,17 +317,23 @@ describe("forgeWebhookRoutes", () => {
   it("isolates plugin throws as a Forge 500 without stack or secrets", async () => {
     const logger = fakeLogger();
     const { app } = await setup({ throwOnWebhook: true, logger });
-    const response = await app.request(forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"), {
-      method: "POST",
-      body: JSON.stringify({ pan: "4111111111111111" }),
-    });
+    const response = await app.request(
+      forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+      {
+        method: "POST",
+        body: JSON.stringify({ pan: "4111111111111111" }),
+      },
+    );
     expect(response.status).toBe(500);
     const body = (await response.json()) as {
       error: string;
       code: string;
       stack?: string;
     };
-    expect(body).toEqual({ error: "Webhook handling failed", code: "forge_webhook" });
+    expect(body).toEqual({
+      error: "Webhook handling failed",
+      code: "forge_webhook",
+    });
     expect(body.stack).toBeUndefined();
     expect(JSON.stringify(body)).not.toContain("sk_live");
     expect(JSON.stringify(body)).not.toContain("4111111111111111");
@@ -330,14 +345,17 @@ describe("forgeWebhookRoutes", () => {
   it("rejects oversized bodies", async () => {
     const { app } = await setup();
     const oversized = "x".repeat(FORGE_WEBHOOK_MAX_BODY_BYTES + 1);
-    const response = await app.request(forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "content-length": String(oversized.length),
+    const response = await app.request(
+      forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(oversized.length),
+        },
+        body: oversized,
       },
-      body: oversized,
-    });
+    );
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({
       error: "Webhook payload too large",
@@ -347,10 +365,13 @@ describe("forgeWebhookRoutes", () => {
 
   it("assigns a request id", async () => {
     const { app } = await setup();
-    const response = await app.request(forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"), {
-      method: "POST",
-      body: "{}",
-    });
+    const response = await app.request(
+      forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+      {
+        method: "POST",
+        body: "{}",
+      },
+    );
     expect(response.headers.get("x-request-id")).toEqual(expect.any(String));
     expect(response.headers.get("x-request-id")?.length).toBeGreaterThan(0);
   });

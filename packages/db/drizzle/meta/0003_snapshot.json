@@ -69,12 +69,8 @@
           "name": "auth_tokens_user_id_users_id_fk",
           "tableFrom": "auth_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -175,12 +171,8 @@
           "name": "mfa_backup_codes_user_id_users_id_fk",
           "tableFrom": "mfa_backup_codes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -357,12 +349,8 @@
           "name": "plugin_instances_plugin_id_plugin_installs_id_fk",
           "tableFrom": "plugin_instances",
           "tableTo": "plugin_installs",
-          "columnsFrom": [
-            "plugin_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plugin_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -431,10 +419,7 @@
       "compositePrimaryKeys": {
         "plugin_kv_plugin_id_key_pk": {
           "name": "plugin_kv_plugin_id_key_pk",
-          "columns": [
-            "plugin_id",
-            "key"
-          ]
+          "columns": ["plugin_id", "key"]
         }
       },
       "uniqueConstraints": {},
@@ -621,12 +606,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -701,12 +682,8 @@
           "name": "step_up_challenges_user_id_users_id_fk",
           "tableFrom": "step_up_challenges",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -845,16 +822,12 @@
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -938,12 +911,8 @@
           "name": "webauthn_credentials_user_id_users_id_fk",
           "tableFrom": "webauthn_credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -959,55 +928,32 @@
     "public.auth_token_type": {
       "name": "auth_token_type",
       "schema": "public",
-      "values": [
-        "email_confirm",
-        "password_reset"
-      ]
+      "values": ["email_confirm", "password_reset"]
     },
     "public.avatar_source": {
       "name": "avatar_source",
       "schema": "public",
-      "values": [
-        "upload",
-        "gravatar",
-        "none"
-      ]
+      "values": ["upload", "gravatar", "none"]
     },
     "public.plugin_instance_kind": {
       "name": "plugin_instance_kind",
       "schema": "public",
-      "values": [
-        "service",
-        "gateway"
-      ]
+      "values": ["service", "gateway"]
     },
     "public.plugin_lifecycle_status": {
       "name": "plugin_lifecycle_status",
       "schema": "public",
-      "values": [
-        "installed",
-        "disabled",
-        "enabled",
-        "started",
-        "error"
-      ]
+      "values": ["installed", "disabled", "enabled", "started", "error"]
     },
     "public.plugin_type": {
       "name": "plugin_type",
       "schema": "public",
-      "values": [
-        "service",
-        "gateway",
-        "panel"
-      ]
+      "values": ["service", "gateway", "panel"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "user",
-        "admin"
-      ]
+      "values": ["user", "admin"]
     }
   },
   "schemas": {},

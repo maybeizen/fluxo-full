@@ -56,18 +56,23 @@ export function createApp(options: CreateAppOptions): Hono<AppBindings> {
         passkeys: auth.passkeys,
         persist: forge.persist,
         manager: forge.manager,
-        createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+        createContext: (pluginId, instanceId) =>
+          forge.createContext(pluginId, instanceId),
       }),
     );
     app.route(
       FORGE_WEBHOOK_PATH_PREFIX,
       forgeWebhookRoutes({
         persist: forge.persist,
-        getGatewayPlugin: (pluginId) => asGatewayPlugin(forge.manager.getActive(pluginId)),
-        isPluginActive: (pluginId) => forge.manager.getActive(pluginId) !== undefined,
-        createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+        getGatewayPlugin: (pluginId) =>
+          asGatewayPlugin(forge.manager.getActive(pluginId)),
+        isPluginActive: (pluginId) =>
+          forge.manager.getActive(pluginId) !== undefined,
+        createContext: (pluginId, instanceId) =>
+          forge.createContext(pluginId, instanceId),
         logger: options.logger,
-        listWebhookHandlers: (pluginId) => forge.gateways.listWebhookHandlers(pluginId),
+        listWebhookHandlers: (pluginId) =>
+          forge.gateways.listWebhookHandlers(pluginId),
       }),
     );
   }

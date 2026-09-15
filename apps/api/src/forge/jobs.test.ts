@@ -22,10 +22,15 @@ function silentLogger(): PluginLogger {
 const schedulers: JobScheduler[] = [];
 
 afterEach(async () => {
-  await Promise.all(schedulers.splice(0).map((scheduler) => scheduler.stopAll()));
+  await Promise.all(
+    schedulers.splice(0).map((scheduler) => scheduler.stopAll()),
+  );
 });
 
-async function waitFor(predicate: () => boolean, timeoutMs = 800): Promise<void> {
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 800,
+): Promise<void> {
   const started = Date.now();
   while (!predicate()) {
     if (Date.now() - started > timeoutMs) {
@@ -93,7 +98,11 @@ describe("plugin jobs", () => {
       permissions: [],
       scheduler,
     });
-    await expect(jobs.schedule({ name: "tick" })).rejects.toBeInstanceOf(ForgePermissionError);
-    expect(() => jobs.handle("tick", () => undefined)).toThrow(ForgePermissionError);
+    await expect(jobs.schedule({ name: "tick" })).rejects.toBeInstanceOf(
+      ForgePermissionError,
+    );
+    expect(() => jobs.handle("tick", () => undefined)).toThrow(
+      ForgePermissionError,
+    );
   });
 });

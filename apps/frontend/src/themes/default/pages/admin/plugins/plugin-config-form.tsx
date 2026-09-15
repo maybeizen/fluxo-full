@@ -16,7 +16,9 @@ function stringValue(value: JsonValue | undefined): string {
 }
 
 function selectedValues(value: JsonValue | undefined): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function ConfigField({
@@ -81,14 +83,18 @@ function ConfigField({
           aria-invalid={invalid}
           onChange={(event) => model.onValue(field.key, event.target.value)}
         >
-          <option value="">{t("admin.plugins.config.selectPlaceholder")}</option>
+          <option value="">
+            {t("admin.plugins.config.selectPlaceholder")}
+          </option>
           {field.options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </NativeSelect>
-        {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
+        {field.description ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
       </Field>
     );
@@ -104,7 +110,11 @@ function ConfigField({
             const optionId = `${fieldId}-${option.value}`;
             const checked = selected.includes(option.value);
             return (
-              <label key={option.value} htmlFor={optionId} className="flex items-center gap-2 text-sm">
+              <label
+                key={option.value}
+                htmlFor={optionId}
+                className="flex items-center gap-2 text-sm"
+              >
                 <Checkbox
                   id={optionId}
                   checked={checked}
@@ -121,7 +131,9 @@ function ConfigField({
             );
           })}
         </div>
-        {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
+        {field.description ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
       </Field>
     );
@@ -137,7 +149,9 @@ function ConfigField({
           aria-invalid={invalid}
           onChange={(event) => model.onValue(field.key, event.target.value)}
         />
-        {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
+        {field.description ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
       </Field>
     );
@@ -161,13 +175,16 @@ function ConfigField({
             model.onValue(field.key, Number(next));
           }}
         />
-        {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
+        {field.description ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
       </Field>
     );
   }
 
-  const inputType = field.type === "email" ? "email" : field.type === "url" ? "url" : "text";
+  const inputType =
+    field.type === "email" ? "email" : field.type === "url" ? "url" : "text";
   return (
     <Field data-invalid={invalid}>
       <FieldLabel htmlFor={fieldId}>{field.label}</FieldLabel>
@@ -178,7 +195,9 @@ function ConfigField({
         aria-invalid={invalid}
         onChange={(event) => model.onValue(field.key, event.target.value)}
       />
-      {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
+      {field.description ? (
+        <FieldDescription>{field.description}</FieldDescription>
+      ) : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </Field>
   );
@@ -229,7 +248,9 @@ export function AdminPluginConfigForm({
             </Alert>
           ) : null}
           {model.schema.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("admin.plugins.detail.noConfig")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("admin.plugins.detail.noConfig")}
+            </p>
           ) : (
             <FieldGroup>
               {model.schema.map((field) => (
@@ -242,7 +263,9 @@ export function AdminPluginConfigForm({
           <CardFooter>
             <Button type="submit" disabled={model.pending}>
               {model.pending ? <Spinner /> : null}
-              {model.pending ? t("admin.plugins.detail.saving") : t("admin.plugins.detail.save")}
+              {model.pending
+                ? t("admin.plugins.detail.saving")
+                : t("admin.plugins.detail.save")}
             </Button>
           </CardFooter>
         ) : null}

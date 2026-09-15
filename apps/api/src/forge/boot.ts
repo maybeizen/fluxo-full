@@ -32,7 +32,9 @@ export function getForgeHost(): ForgeHost {
   return host;
 }
 
-export async function startForge(options: StartForgeOptions): Promise<ForgeHost> {
+export async function startForge(
+  options: StartForgeOptions,
+): Promise<ForgeHost> {
   if (host !== undefined) {
     await stopForge();
   }

@@ -4,7 +4,14 @@ import { validatePluginConfigDraft } from "./plugins/validate-config";
 
 const schema: PluginConfigField[] = [
   { key: "host", type: "text", label: "Host", required: true, minLength: 1 },
-  { key: "port", type: "number", label: "Port", integer: true, min: 1, max: 65535 },
+  {
+    key: "port",
+    type: "number",
+    label: "Port",
+    integer: true,
+    min: 1,
+    max: 65535,
+  },
   { key: "api_token", type: "secret", label: "API token", required: true },
   {
     key: "region",
@@ -35,7 +42,9 @@ describe("validatePluginConfigDraft", () => {
       { api_token: { value: "", clear: false } },
       [],
     );
-    expect(errors).toEqual([{ key: "api_token", label: "API token", code: "required" }]);
+    expect(errors).toEqual([
+      { key: "api_token", label: "API token", code: "required" },
+    ]);
   });
 
   it("checks number min/max without executing schema regex", () => {

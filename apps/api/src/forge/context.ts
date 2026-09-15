@@ -44,7 +44,11 @@ export async function createPluginContext(
 ): Promise<PluginContext> {
   const pluginId = parsePluginId(options.pluginId);
   const permissions = uniquePermissions(options.permissions);
-  const config = await loadPluginConfig(options.persist, pluginId, options.instanceId);
+  const config = await loadPluginConfig(
+    options.persist,
+    pluginId,
+    options.instanceId,
+  );
   const secretValues = Object.values(config.secrets);
   const logger = createPluginLogger({
     logger: options.logger,
@@ -74,7 +78,10 @@ export async function createPluginContext(
       logger,
     }),
     users: createPluginUsersApi({ permissions, users: options.users }),
-    settings: createPluginSettingsApi({ permissions, settings: options.settings }),
+    settings: createPluginSettingsApi({
+      permissions,
+      settings: options.settings,
+    }),
   };
   if (options.instanceId !== undefined) {
     return { ...context, instanceId: options.instanceId };
@@ -196,7 +203,11 @@ async function secretFieldKeys(
 }
 
 function configFieldsFromManifest(manifest: unknown): PluginConfigField[] {
-  if (typeof manifest !== "object" || manifest === null || !("config" in manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    !("config" in manifest)
+  ) {
     return [];
   }
   const config = (manifest as { config?: unknown }).config;
@@ -215,7 +226,11 @@ function configFieldsFromManifest(manifest: unknown): PluginConfigField[] {
 }
 
 export function permissionsFromManifest(manifest: unknown): PluginPermission[] {
-  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
     return [];
   }
   const record = manifest as Record<string, unknown>;

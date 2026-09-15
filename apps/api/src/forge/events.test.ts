@@ -1,6 +1,11 @@
 import { ForgePermissionError, type PluginLogger } from "@fluxo/forge";
 import { describe, expect, it } from "vitest";
-import { createForgeEventBus, createPluginEvents, emitForgeEvent, setActiveForgeEventBus } from "./events.js";
+import {
+  createForgeEventBus,
+  createPluginEvents,
+  emitForgeEvent,
+  setActiveForgeEventBus,
+} from "./events.js";
 
 function silentLogger(): PluginLogger {
   const logger: PluginLogger = {
@@ -25,7 +30,9 @@ describe("forge events", () => {
     bus.on("user.created", () => {
       seen.push("second");
     });
-    await expect(bus.emit("user.created", { userId: "u1" })).resolves.toBeUndefined();
+    await expect(
+      bus.emit("user.created", { userId: "u1" }),
+    ).resolves.toBeUndefined();
     expect(seen).toEqual(["second"]);
   });
 
@@ -36,11 +43,15 @@ describe("forge events", () => {
       permissions: [],
       bus,
     });
-    expect(() => events.on("user.created", () => undefined)).toThrow(ForgePermissionError);
-    expect(() => events.onCustom("tick", () => undefined)).toThrow(ForgePermissionError);
-    await expect(events.emitCustom("tick", { ok: true })).rejects.toBeInstanceOf(
+    expect(() => events.on("user.created", () => undefined)).toThrow(
       ForgePermissionError,
     );
+    expect(() => events.onCustom("tick", () => undefined)).toThrow(
+      ForgePermissionError,
+    );
+    await expect(
+      events.emitCustom("tick", { ok: true }),
+    ).rejects.toBeInstanceOf(ForgePermissionError);
   });
 
   it("qualifies custom events and does not emit core names", async () => {

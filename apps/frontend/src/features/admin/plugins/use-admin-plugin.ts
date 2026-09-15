@@ -25,7 +25,10 @@ import {
   uninstallAdminPlugin,
 } from "./api";
 import type { PluginHealthSnapshot, PluginSecretDraft } from "./types";
-import { buildConfigPayload, validatePluginConfigDraft } from "./validate-config";
+import {
+  buildConfigPayload,
+  validatePluginConfigDraft,
+} from "./validate-config";
 
 function emptySecret(): PluginSecretDraft {
   return { value: "", clear: false };
@@ -59,12 +62,16 @@ function hydrateValues(
     if (field.type === "secret") {
       continue;
     }
-    next[field.key] = Object.hasOwn(stored, field.key) ? stored[field.key] : defaultValue(field);
+    next[field.key] = Object.hasOwn(stored, field.key)
+      ? stored[field.key]
+      : defaultValue(field);
   }
   return next;
 }
 
-function hydrateSecrets(schema: readonly PluginConfigField[]): Record<string, PluginSecretDraft> {
+function hydrateSecrets(
+  schema: readonly PluginConfigField[],
+): Record<string, PluginSecretDraft> {
   const next: Record<string, PluginSecretDraft> = {};
   for (const field of schema) {
     if (field.type === "secret") {
@@ -81,8 +88,15 @@ function mapDraftErrors(
   secretKeysSet: readonly string[],
 ): Record<string, string> {
   const errors: Record<string, string> = {};
-  for (const error of validatePluginConfigDraft(schema, values, secrets, secretKeysSet)) {
-    errors[error.key] = t(`admin.plugins.validation.${error.code}`, { label: error.label });
+  for (const error of validatePluginConfigDraft(
+    schema,
+    values,
+    secrets,
+    secretKeysSet,
+  )) {
+    errors[error.key] = t(`admin.plugins.validation.${error.code}`, {
+      label: error.label,
+    });
   }
   return errors;
 }
@@ -106,17 +120,30 @@ export function useAdminPlugin(pluginId: string) {
   });
 
   const plugin = pluginQuery.data;
-  const supportsInstances = plugin?.type === "service" || plugin?.type === "gateway";
+  const supportsInstances =
+    plugin?.type === "service" || plugin?.type === "gateway";
 
-  const [values, setValues] = useState<Record<string, JsonValue | undefined>>({});
+  const [values, setValues] = useState<Record<string, JsonValue | undefined>>(
+    {},
+  );
   const [secrets, setSecrets] = useState<Record<string, PluginSecretDraft>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>();
-  const [instanceValues, setInstanceValues] = useState<Record<string, JsonValue | undefined>>({});
-  const [instanceSecrets, setInstanceSecrets] = useState<Record<string, PluginSecretDraft>>({});
-  const [instanceErrors, setInstanceErrors] = useState<Record<string, string>>({});
-  const [instanceFormError, setInstanceFormError] = useState<string | undefined>();
+  const [selectedInstanceId, setSelectedInstanceId] = useState<
+    string | undefined
+  >();
+  const [instanceValues, setInstanceValues] = useState<
+    Record<string, JsonValue | undefined>
+  >({});
+  const [instanceSecrets, setInstanceSecrets] = useState<
+    Record<string, PluginSecretDraft>
+  >({});
+  const [instanceErrors, setInstanceErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [instanceFormError, setInstanceFormError] = useState<
+    string | undefined
+  >();
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createEnabled, setCreateEnabled] = useState(false);
@@ -126,8 +153,12 @@ export function useAdminPlugin(pluginId: string) {
   const [health, setHealth] = useState<PluginHealthSnapshot | undefined>();
 
   const instanceConfigQuery = useQuery({
-    queryKey: adminPluginInstanceConfigQueryKey(pluginId, selectedInstanceId ?? ""),
-    queryFn: () => getAdminPluginInstanceConfig(pluginId, selectedInstanceId ?? ""),
+    queryKey: adminPluginInstanceConfigQueryKey(
+      pluginId,
+      selectedInstanceId ?? "",
+    ),
+    queryFn: () =>
+      getAdminPluginInstanceConfig(pluginId, selectedInstanceId ?? ""),
     enabled: Boolean(selectedInstanceId),
   });
 
@@ -155,12 +186,21 @@ export function useAdminPlugin(pluginId: string) {
 
   async function invalidateAll(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: adminPluginsQueryKey });
-    await queryClient.invalidateQueries({ queryKey: adminPluginQueryKey(pluginId) });
-    await queryClient.invalidateQueries({ queryKey: adminPluginConfigQueryKey(pluginId) });
-    await queryClient.invalidateQueries({ queryKey: adminPluginInstancesQueryKey(pluginId) });
+    await queryClient.invalidateQueries({
+      queryKey: adminPluginQueryKey(pluginId),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: adminPluginConfigQueryKey(pluginId),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: adminPluginInstancesQueryKey(pluginId),
+    });
     if (selectedInstanceId) {
       await queryClient.invalidateQueries({
-        queryKey: adminPluginInstanceConfigQueryKey(pluginId, selectedInstanceId),
+        queryKey: adminPluginInstanceConfigQueryKey(
+          pluginId,
+          selectedInstanceId,
+        ),
       });
     }
   }
@@ -172,7 +212,11 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.enabled"));
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.enable"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.enable"),
+      );
     },
   });
 
@@ -183,7 +227,11 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.disabled"));
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.disable"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.disable"),
+      );
     },
   });
 
@@ -195,7 +243,11 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.uninstalled"));
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.uninstall"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.uninstall"),
+      );
     },
   });
 
@@ -205,12 +257,17 @@ export function useAdminPlugin(pluginId: string) {
       setHealth(snapshot);
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.health"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.health"),
+      );
     },
   });
 
   const saveMutation = useMutation({
-    mutationFn: (payload: Record<string, JsonValue | null>) => putAdminPluginConfig(pluginId, payload),
+    mutationFn: (payload: Record<string, JsonValue | null>) =>
+      putAdminPluginConfig(pluginId, payload),
     onSuccess: async (config) => {
       await invalidateAll();
       setValues(hydrateValues(config.schema, config.values));
@@ -220,7 +277,10 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.detail.saved"));
     },
     onError: (error) => {
-      const message = error instanceof AuthApiError ? error.message : t("admin.plugins.unable.save");
+      const message =
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.save");
       setFormError(message);
       toast.error(message);
     },
@@ -238,7 +298,10 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.detail.saved"));
     },
     onError: (error) => {
-      const message = error instanceof AuthApiError ? error.message : t("admin.plugins.unable.save");
+      const message =
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.save");
       setInstanceFormError(message);
       toast.error(message);
     },
@@ -260,7 +323,10 @@ export function useAdminPlugin(pluginId: string) {
       toast.success(t("admin.plugins.instances.created"));
     },
     onError: (error) => {
-      const message = error instanceof AuthApiError ? error.message : t("admin.plugins.unable.instance");
+      const message =
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.instance");
       setCreateError(message);
       toast.error(message);
     },
@@ -273,12 +339,17 @@ export function useAdminPlugin(pluginId: string) {
       await invalidateAll();
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.instance"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.instance"),
+      );
     },
   });
 
   const deleteInstanceMutation = useMutation({
-    mutationFn: (instanceId: string) => deleteAdminPluginInstance(pluginId, instanceId),
+    mutationFn: (instanceId: string) =>
+      deleteAdminPluginInstance(pluginId, instanceId),
     onSuccess: async (_result, instanceId) => {
       if (selectedInstanceId === instanceId) {
         setSelectedInstanceId(undefined);
@@ -286,7 +357,11 @@ export function useAdminPlugin(pluginId: string) {
       await invalidateAll();
     },
     onError: (error) => {
-      toast.error(error instanceof AuthApiError ? error.message : t("admin.plugins.unable.instance"));
+      toast.error(
+        error instanceof AuthApiError
+          ? error.message
+          : t("admin.plugins.unable.instance"),
+      );
     },
   });
 
@@ -323,7 +398,9 @@ export function useAdminPlugin(pluginId: string) {
         if (Object.keys(nextErrors).length > 0) {
           return;
         }
-        saveMutation.mutate(buildConfigPayload(pluginConfig.schema, values, secrets));
+        saveMutation.mutate(
+          buildConfigPayload(pluginConfig.schema, values, secrets),
+        );
       },
     }),
     [pluginConfig, values, secrets, errors, formError, saveMutation],
@@ -360,7 +437,11 @@ export function useAdminPlugin(pluginId: string) {
           return;
         }
         saveInstanceMutation.mutate(
-          buildConfigPayload(instanceConfig.schema, instanceValues, instanceSecrets),
+          buildConfigPayload(
+            instanceConfig.schema,
+            instanceValues,
+            instanceSecrets,
+          ),
         );
       },
     }),
@@ -417,7 +498,8 @@ export function useAdminPlugin(pluginId: string) {
       }
       createInstanceMutation.mutate();
     },
-    instanceActionPending: instanceEnabledMutation.isPending || deleteInstanceMutation.isPending,
+    instanceActionPending:
+      instanceEnabledMutation.isPending || deleteInstanceMutation.isPending,
     onSetInstanceEnabled: (instanceId: string, enabled: boolean) => {
       instanceEnabledMutation.mutate({ instanceId, enabled });
     },

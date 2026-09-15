@@ -22,11 +22,15 @@ function Probe({
 }: {
   enabledPluginIds?: readonly string[] | null;
 }) {
-  const items = usePluginExtensions("admin.dashboard.widget", { enabledPluginIds });
+  const items = usePluginExtensions("admin.dashboard.widget", {
+    enabledPluginIds,
+  });
   return (
     <ul>
       {items.map((item) => (
-        <li key={`${item.pluginId}:${item.contributionId}`}>{item.contributionId}</li>
+        <li key={`${item.pluginId}:${item.contributionId}`}>
+          {item.contributionId}
+        </li>
       ))}
     </ul>
   );

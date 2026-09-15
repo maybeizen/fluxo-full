@@ -8,7 +8,14 @@ export function AdminDashboardPage() {
   return (
     <AdminDashboard
       items={adminNavItems}
-      widgets={user ? <PluginSlot point="admin.dashboard.widget" slotProps={{ user, settings }} /> : null}
+      widgets={
+        user ? (
+          <PluginSlot
+            point="admin.dashboard.widget"
+            slotProps={{ user, settings }}
+          />
+        ) : null
+      }
     />
   );
 }

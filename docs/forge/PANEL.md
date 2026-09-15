@@ -10,12 +10,12 @@ Application logic → hooks / services / state → page composition
 
 ## Themes vs plugins
 
-| | Themes | Panel plugins |
-| --- | --- | --- |
+|          | Themes                            | Panel plugins                      |
+| -------- | --------------------------------- | ---------------------------------- |
 | Location | `apps/frontend/src/theme-system/` | `apps/frontend/src/plugin-system/` |
-| Catalog | `theme-system/catalog.ts` | `plugin-system/catalog.ts` |
-| Hook | `useUI()` / `useT()` | `usePluginExtensions(point)` |
-| Replaces | Fluxo presentation | nothing — adds UI at named points |
+| Catalog  | `theme-system/catalog.ts`         | `plugin-system/catalog.ts`         |
+| Hook     | `useUI()` / `useT()`              | `usePluginExtensions(point)`       |
+| Replaces | Fluxo presentation                | nothing — adds UI at named points  |
 
 Do not register plugins in the theme catalog. Do not load panel modules with `import(userString)`. Do not put plugin fetching inside theme components.
 
@@ -37,17 +37,17 @@ Until the API host feeds enabled ids, tests and local registration enable all re
 
 ## Wiring (existing surfaces only)
 
-| Point | Surface |
-| --- | --- |
-| `client.shell.accountMenu` | Account menu (`useAccountMenu` extras) |
-| `client.dashboard.services` / `.invoices` / `.news` / `.support` | Dashboard tab panels |
-| `client.settings.section` | Account settings |
-| `admin.dashboard.widget` | Admin home |
-| `admin.nav.item` | Admin sidebar extras |
-| `admin.users.listAction` | Users table row actions |
-| `admin.users.detailSection` | User edit page |
-| `admin.settings.section` | Admin settings |
-| `auth.login.extra` | Login card, after social actions |
+| Point                                                            | Surface                                |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| `client.shell.accountMenu`                                       | Account menu (`useAccountMenu` extras) |
+| `client.dashboard.services` / `.invoices` / `.news` / `.support` | Dashboard tab panels                   |
+| `client.settings.section`                                        | Account settings                       |
+| `admin.dashboard.widget`                                         | Admin home                             |
+| `admin.nav.item`                                                 | Admin sidebar extras                   |
+| `admin.users.listAction`                                         | Users table row actions                |
+| `admin.users.detailSection`                                      | User edit page                         |
+| `admin.settings.section`                                         | Admin settings                         |
+| `auth.login.extra`                                               | Login card, after social actions       |
 
 Each contribution is wrapped in an error boundary so one throwing widget does not crash the page.
 
@@ -94,7 +94,12 @@ const { user, settings } = usePanelHostContext();
 return (
   <>
     <AdminDashboard items={items} />
-    {user ? <PluginSlot point="admin.dashboard.widget" slotProps={{ user, settings }} /> : null}
+    {user ? (
+      <PluginSlot
+        point="admin.dashboard.widget"
+        slotProps={{ user, settings }}
+      />
+    ) : null}
   </>
 );
 ```

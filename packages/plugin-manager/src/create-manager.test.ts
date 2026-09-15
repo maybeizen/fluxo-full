@@ -1,4 +1,11 @@
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -16,7 +23,9 @@ import type { PluginInstallState, PluginManager } from "./types.js";
 const dirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 async function tempDir(): Promise<string> {
@@ -61,7 +70,11 @@ async function writePluginPackage(
     ...(options.entry ? { entry: options.entry } : {}),
     ...options.manifest,
   });
-  await writeFile(path.join(root, "plugin.json"), JSON.stringify(manifest), "utf8");
+  await writeFile(
+    path.join(root, "plugin.json"),
+    JSON.stringify(manifest),
+    "utf8",
+  );
   if (!options.skipEntry) {
     const entry = String(manifest.entry);
     const entryPath = path.join(root, entry);
@@ -121,8 +134,12 @@ describe("createPluginManager discovery", () => {
     await manager.loadAll();
     expect(manager.getActive("alpha")?.manifest.id).toBe("alpha");
     expect(manager.getActive("beta")).toBeUndefined();
-    expect(manager.list().find((item) => item.id === "alpha")?.status).toBe("started");
-    expect(manager.list().find((item) => item.id === "beta")?.status).toBe("installed");
+    expect(manager.list().find((item) => item.id === "alpha")?.status).toBe(
+      "started",
+    );
+    expect(manager.list().find((item) => item.id === "beta")?.status).toBe(
+      "installed",
+    );
     expect(await readFile(log, "utf8")).toBe("start:alpha\n");
   });
 
@@ -138,12 +155,14 @@ describe("createPluginManager discovery", () => {
     await writePluginPackage(directory, "okplugin");
     const manager = createManager(directory);
     const results = await manager.loadAll();
-    expect(results.some((result) => result.id === "InvalidId" && result.ok === false)).toBe(
-      true,
-    );
-    expect(results.some((result) => result.id === "foo_bar" && result.ok === false)).toBe(
-      true,
-    );
+    expect(
+      results.some(
+        (result) => result.id === "InvalidId" && result.ok === false,
+      ),
+    ).toBe(true);
+    expect(
+      results.some((result) => result.id === "foo_bar" && result.ok === false),
+    ).toBe(true);
     expect(results.find((result) => result.id === "okplugin")?.ok).toBe(true);
   });
 
@@ -167,16 +186,14 @@ describe("createPluginManager discovery", () => {
       skipEntry: true,
     });
     const outside = path.join(directory, "outside.js");
-    await writeFile(
-      outside,
-      pluginSource(baseManifest("linked")),
-      "utf8",
-    );
+    await writeFile(outside, pluginSource(baseManifest("linked")), "utf8");
     await symlink(outside, path.join(root, "link.js"));
     const manager = createManager(directory);
     const results = await manager.loadAll();
     expect(results[0]?.ok).toBe(false);
-    expect(results[0]?.error).toMatch(/escapes plugin root|Unsafe plugin entry/i);
+    expect(results[0]?.error).toMatch(
+      /escapes plugin root|Unsafe plugin entry/i,
+    );
   });
 
   it("fails duplicate plugin ids and does not load either", async () => {
@@ -192,12 +209,16 @@ describe("createPluginManager discovery", () => {
     const duplicates = results.filter((result) => result.id === "shared");
     expect(duplicates.length).toBeGreaterThanOrEqual(2);
     expect(duplicates.every((result) => result.ok === false)).toBe(true);
-    expect(duplicates.every((result) => result.error?.includes("duplicate plugin id"))).toBe(
-      true,
-    );
+    expect(
+      duplicates.every((result) =>
+        result.error?.includes("duplicate plugin id"),
+      ),
+    ).toBe(true);
     expect(manager.getActive("shared")).toBeUndefined();
     expect(manager.getActive("alpha")).toBeUndefined();
-    await expect(manager.enable("shared")).rejects.toBeInstanceOf(PluginNotLoadableError);
+    await expect(manager.enable("shared")).rejects.toBeInstanceOf(
+      PluginNotLoadableError,
+    );
   });
 
   it("skips incompatible forgeApi plugins", async () => {
@@ -226,9 +247,13 @@ describe("createPluginManager discovery", () => {
     const manager = createManager(directory);
     const results = await manager.loadAll();
     expect(results.find((result) => result.id === "broken")?.ok).toBe(false);
-    expect(results.find((result) => result.id === "broken")?.error).toMatch(/Malformed/);
+    expect(results.find((result) => result.id === "broken")?.error).toMatch(
+      /Malformed/,
+    );
     expect(results.find((result) => result.id === "empty")?.ok).toBe(false);
-    expect(results.find((result) => result.id === "empty")?.error).toMatch(/Missing plugin.json/);
+    expect(results.find((result) => result.id === "empty")?.error).toMatch(
+      /Missing plugin.json/,
+    );
     expect(results.find((result) => result.id === "okplugin")?.ok).toBe(true);
   });
 
@@ -241,7 +266,11 @@ describe("createPluginManager discovery", () => {
       `{"id":"pollute","name":"P","version":"1.0.0","type":"service","forgeApi":"^${FORGE_API_VERSION}","entry":"index.js","__proto__":{"name":"pwned"}}`,
       "utf8",
     );
-    await writeFile(path.join(root, "index.js"), pluginSource(baseManifest("pollute")), "utf8");
+    await writeFile(
+      path.join(root, "index.js"),
+      pluginSource(baseManifest("pollute")),
+      "utf8",
+    );
     const manager = createManager(directory);
     const results = await manager.loadAll();
     expect(results[0]?.ok).toBe(false);
@@ -274,7 +303,9 @@ describe("createPluginManager discovery", () => {
     const manager = createManager(directory);
     const results = await manager.loadAll();
     expect(results.find((result) => result.id === "boom")?.ok).toBe(false);
-    expect(results.find((result) => result.id === "boom")?.error).toContain("boom at import");
+    expect(results.find((result) => result.id === "boom")?.error).toContain(
+      "boom at import",
+    );
     expect(results.find((result) => result.id === "okplugin")?.ok).toBe(true);
     expect(manager.list().some((item) => item.id === "okplugin")).toBe(true);
   });
@@ -307,7 +338,9 @@ describe("createPluginManager lifecycle", () => {
     await expect(readFile(log, "utf8")).rejects.toThrow();
 
     await manager.install("lifecycle");
-    expect((await manager.getDefinition("lifecycle"))?.status).toBe("installed");
+    expect((await manager.getDefinition("lifecycle"))?.status).toBe(
+      "installed",
+    );
     await manager.enable("lifecycle");
     expect(manager.getActive("lifecycle")?.manifest.id).toBe("lifecycle");
     expect((await manager.getDefinition("lifecycle"))?.status).toBe("started");
@@ -369,9 +402,9 @@ describe("createPluginManager lifecycle", () => {
     await manager.disable("contrib");
     expect(manager.listActive()).toEqual([]);
     expect(manager.getActive("contrib")).toBeUndefined();
-    expect((await manager.listDefinitions()).some((item) => item.id === "contrib")).toBe(
-      true,
-    );
+    expect(
+      (await manager.listDefinitions()).some((item) => item.id === "contrib"),
+    ).toBe(true);
   });
 
   it("isolates onStart failures and still starts other plugins", async () => {
@@ -398,7 +431,9 @@ describe("createPluginManager lifecycle", () => {
     expect(manager.getActive("throws")).toBeUndefined();
     expect(manager.getActive("okplugin")).toBeDefined();
     await manager.enable("throws");
-    expect(manager.list().find((item) => item.id === "throws")?.status).toBe("error");
+    expect(manager.list().find((item) => item.id === "throws")?.status).toBe(
+      "error",
+    );
   });
 
   it("does not call onEnable after an onStart failure", async () => {
@@ -434,10 +469,18 @@ describe("createPluginManager lifecycle", () => {
     });
     const manager = createManager(directory);
     await manager.loadAll();
-    await expect(manager.enable("missing")).rejects.toBeInstanceOf(PluginNotFoundError);
-    await expect(manager.enable("invalid")).rejects.toBeInstanceOf(PluginNotLoadableError);
-    await expect(manager.disable("invalid")).rejects.toBeInstanceOf(PluginNotLoadableError);
-    await expect(manager.install("okplugin")).rejects.toBeInstanceOf(PluginNotFoundError);
+    await expect(manager.enable("missing")).rejects.toBeInstanceOf(
+      PluginNotFoundError,
+    );
+    await expect(manager.enable("invalid")).rejects.toBeInstanceOf(
+      PluginNotLoadableError,
+    );
+    await expect(manager.disable("invalid")).rejects.toBeInstanceOf(
+      PluginNotLoadableError,
+    );
+    await expect(manager.install("okplugin")).rejects.toBeInstanceOf(
+      PluginNotFoundError,
+    );
   });
 
   it("requires install before enable", async () => {
@@ -445,7 +488,9 @@ describe("createPluginManager lifecycle", () => {
     await writePluginPackage(directory, "demo");
     const manager = createManager(directory);
     await manager.loadAll();
-    await expect(manager.enable("demo")).rejects.toBeInstanceOf(ForgeConflictError);
+    await expect(manager.enable("demo")).rejects.toBeInstanceOf(
+      ForgeConflictError,
+    );
   });
 
   it("passes a host context without db handles", async () => {
@@ -490,7 +535,9 @@ describe("createPluginManager lifecycle", () => {
     await manager.install("alpha");
     await manager.enable("alpha");
     await manager.refresh("alpha");
-    expect(await readFile(log, "utf8")).toBe("install\nenable\nstart\nstop\nstart\n");
+    expect(await readFile(log, "utf8")).toBe(
+      "install\nenable\nstart\nstop\nstart\n",
+    );
     expect(manager.getActive("alpha")).toBeDefined();
   });
 });

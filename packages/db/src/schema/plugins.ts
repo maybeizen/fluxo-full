@@ -12,7 +12,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const pluginTypeEnum = pgEnum("plugin_type", ["service", "gateway", "panel"]);
+export const pluginTypeEnum = pgEnum("plugin_type", [
+  "service",
+  "gateway",
+  "panel",
+]);
 
 export const pluginLifecycleStatusEnum = pgEnum("plugin_lifecycle_status", [
   "installed",
@@ -22,7 +26,10 @@ export const pluginLifecycleStatusEnum = pgEnum("plugin_lifecycle_status", [
   "error",
 ]);
 
-export const pluginInstanceKindEnum = pgEnum("plugin_instance_kind", ["service", "gateway"]);
+export const pluginInstanceKindEnum = pgEnum("plugin_instance_kind", [
+  "service",
+  "gateway",
+]);
 
 export const pluginInstalls = pgTable("plugin_installs", {
   id: text("id").primaryKey(),
@@ -34,8 +41,12 @@ export const pluginInstalls = pgTable("plugin_installs", {
   discoveredPath: text("discovered_path"),
   contentHash: text("content_hash"),
   manifest: jsonb("manifest").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const pluginInstances = pgTable(
@@ -48,9 +59,15 @@ export const pluginInstances = pgTable(
     kind: pluginInstanceKindEnum("kind").notNull(),
     displayName: text("display_name").notNull(),
     enabled: boolean("enabled").notNull().default(false),
-    config: jsonb("config").notNull().default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    config: jsonb("config")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [index("plugin_instances_plugin_id_idx").on(table.pluginId)],
 );
@@ -61,11 +78,18 @@ export const pluginKv = pgTable(
     pluginId: text("plugin_id").notNull(),
     key: text("key").notNull(),
     value: jsonb("value").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.pluginId, table.key], name: "plugin_kv_plugin_id_key_pk" }),
+    primaryKey({
+      columns: [table.pluginId, table.key],
+      name: "plugin_kv_plugin_id_key_pk",
+    }),
     index("plugin_kv_plugin_id_idx").on(table.pluginId),
   ],
 );
@@ -78,8 +102,12 @@ export const pluginSecrets = pgTable(
     instanceId: text("instance_id").notNull().default(""),
     key: text("key").notNull(),
     payload: jsonb("payload").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     uniqueIndex("plugin_secrets_plugin_instance_key_idx").on(

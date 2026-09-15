@@ -49,7 +49,9 @@ export function UsersTable({
           <TableHead>{t("admin.users.column.signIn")}</TableHead>
           <TableHead>{t("admin.users.column.verified")}</TableHead>
           <TableHead>{t("admin.users.column.joined")}</TableHead>
-          <TableHead className="text-right">{t("admin.users.column.actions")}</TableHead>
+          <TableHead className="text-right">
+            {t("admin.users.column.actions")}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,15 +65,23 @@ export function UsersTable({
               <TableCell>
                 <div className="flex min-w-0 items-center gap-2">
                   <Avatar size="sm">
-                    {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
-                    <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    {user.avatarUrl ? (
+                      <AvatarImage src={user.avatarUrl} alt="" />
+                    ) : null}
+                    <AvatarFallback>
+                      {user.username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   <span className="truncate font-medium">{user.username}</span>
                 </div>
               </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
-                <Badge variant={user.role === UserRole.Admin ? "default" : "secondary"}>
+                <Badge
+                  variant={
+                    user.role === UserRole.Admin ? "default" : "secondary"
+                  }
+                >
                   {formatRole(user.role)}
                 </Badge>
               </TableCell>
@@ -87,7 +97,9 @@ export function UsersTable({
                   <IconButton
                     label={t("admin.users.edit")}
                     nativeButton={false}
-                    render={<Link to="/admin/users/$id" params={{ id: user.id }} />}
+                    render={
+                      <Link to="/admin/users/$id" params={{ id: user.id }} />
+                    }
                   >
                     <PencilIcon />
                   </IconButton>

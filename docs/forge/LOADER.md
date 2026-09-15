@@ -13,7 +13,8 @@ const manager = createPluginManager({
   logger,
   createContext: (pluginId) => createPluginContext(pluginId),
   getInstallState: (pluginId) => persist.getInstallState(pluginId),
-  setInstallState: (pluginId, state) => persist.setInstallState(pluginId, state),
+  setInstallState: (pluginId, state) =>
+    persist.setInstallState(pluginId, state),
 });
 
 await manager.loadAll();

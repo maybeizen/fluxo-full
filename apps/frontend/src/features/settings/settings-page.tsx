@@ -1,4 +1,8 @@
-import { PluginSlot, toPluginPublicSettings, toPluginUserView } from "@/plugin-system";
+import {
+  PluginSlot,
+  toPluginPublicSettings,
+  toPluginUserView,
+} from "@/plugin-system";
 import { usePublicSettings } from "@/hooks/use-public-settings";
 import { useSession } from "@/hooks/use-session";
 import { useUI } from "@/theme-system";
@@ -7,11 +11,18 @@ import type { SettingsTab } from "./search";
 import { SecuritySection } from "./security/security-section";
 import { SessionsSection } from "./sessions/sessions-section";
 
-export function SettingsPage({ tab, token }: { tab?: SettingsTab; token?: string }) {
+export function SettingsPage({
+  tab,
+  token,
+}: {
+  tab?: SettingsTab;
+  token?: string;
+}) {
   const { SettingsLayout, Skeleton } = useUI();
   const session = useSession();
   const settings = usePublicSettings();
-  const user = session.data?.status === "authenticated" ? session.data.user : undefined;
+  const user =
+    session.data?.status === "authenticated" ? session.data.user : undefined;
 
   if (!user) {
     return (
@@ -31,7 +42,10 @@ export function SettingsPage({ tab, token }: { tab?: SettingsTab; token?: string
       extraSections={
         <PluginSlot
           point="client.settings.section"
-          slotProps={{ user: toPluginUserView(user), settings: toPluginPublicSettings(settings) }}
+          slotProps={{
+            user: toPluginUserView(user),
+            settings: toPluginPublicSettings(settings),
+          }}
         />
       }
     />

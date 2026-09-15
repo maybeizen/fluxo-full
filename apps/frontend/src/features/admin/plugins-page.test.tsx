@@ -1,4 +1,8 @@
-import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
+import {
+  createMemoryHistory,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
@@ -7,7 +11,9 @@ import { UserRole } from "@/lib/auth";
 import { createUser, jsonResponse, mockApiUrl } from "@/test/auth";
 import type { AdminPluginListItem } from "./plugins/types";
 
-function createPlugin(overrides: Partial<AdminPluginListItem> = {}): AdminPluginListItem {
+function createPlugin(
+  overrides: Partial<AdminPluginListItem> = {},
+): AdminPluginListItem {
   return {
     id: "acme.mail",
     type: "service",
@@ -82,13 +88,27 @@ describe("Admin plugins page", () => {
     ).toBeInTheDocument();
 
     const table = await screen.findByRole("table");
-    expect(within(table).getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Plugin ID" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Type" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Version" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Status" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Enabled" })).toBeInTheDocument();
-    expect(within(table).getByRole("columnheader", { name: "Compatibility" })).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Name" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Plugin ID" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Type" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Version" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Status" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Enabled" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Compatibility" }),
+    ).toBeInTheDocument();
     expect(within(table).getByText("Mail")).toBeInTheDocument();
     expect(within(table).getByText("acme.mail")).toBeInTheDocument();
   });

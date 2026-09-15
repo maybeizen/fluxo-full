@@ -77,15 +77,28 @@ export interface AdminPluginService {
   get(pluginId: string): Promise<AdminPluginView>;
   enable(pluginId: string): Promise<AdminPluginView>;
   disable(pluginId: string): Promise<AdminPluginView>;
-  uninstall(pluginId: string, options?: { purgeStorage?: boolean }): Promise<void>;
+  uninstall(
+    pluginId: string,
+    options?: { purgeStorage?: boolean },
+  ): Promise<void>;
   getConfig(pluginId: string): Promise<AdminPluginConfigView>;
   putConfig(pluginId: string, input: unknown): Promise<AdminPluginConfigView>;
-  checkHealth(pluginId: string, instanceId?: string): Promise<PluginHealthSnapshot>;
+  checkHealth(
+    pluginId: string,
+    instanceId?: string,
+  ): Promise<PluginHealthSnapshot>;
   listInstances(pluginId: string): Promise<PluginInstanceRecord[]>;
-  getInstance(pluginId: string, instanceId: string): Promise<PluginInstanceRecord>;
+  getInstance(
+    pluginId: string,
+    instanceId: string,
+  ): Promise<PluginInstanceRecord>;
   createInstance(
     pluginId: string,
-    input: { displayName: string; enabled?: boolean; config?: Record<string, JsonValue> },
+    input: {
+      displayName: string;
+      enabled?: boolean;
+      config?: Record<string, JsonValue>;
+    },
   ): Promise<PluginInstanceRecord>;
   updateInstance(
     pluginId: string,
@@ -98,7 +111,10 @@ export interface AdminPluginService {
     enabled: boolean,
   ): Promise<PluginInstanceRecord>;
   deleteInstance(pluginId: string, instanceId: string): Promise<void>;
-  getInstanceConfig(pluginId: string, instanceId: string): Promise<AdminPluginConfigView>;
+  getInstanceConfig(
+    pluginId: string,
+    instanceId: string,
+  ): Promise<AdminPluginConfigView>;
   putInstanceConfig(
     pluginId: string,
     instanceId: string,
@@ -149,7 +165,10 @@ export function createAdminPluginService(
     createdAt: Date;
     updatedAt: Date;
   }): Promise<PluginInstanceRecord> {
-    const secretKeysSet = await persist.listSecretKeysSet(instance.pluginId, instance.id);
+    const secretKeysSet = await persist.listSecretKeysSet(
+      instance.pluginId,
+      instance.id,
+    );
     return toPluginInstanceRecord(instance, secretKeysSet);
   }
 
@@ -159,7 +178,10 @@ export function createAdminPluginService(
       const definitions = manager ? [...(await manager.listDefinitions())] : [];
       const installMap = new Map(installs.map((row) => [row.id, row]));
       const definitionMap = new Map(definitions.map((row) => [row.id, row]));
-      const ids = new Set<string>([...installMap.keys(), ...definitionMap.keys()]);
+      const ids = new Set<string>([
+        ...installMap.keys(),
+        ...definitionMap.keys(),
+      ]);
       const views: AdminPluginView[] = [];
       for (const id of ids) {
         views.push(
@@ -226,7 +248,9 @@ export function createAdminPluginService(
 
     async getConfig(pluginId) {
       const { id, install, definition } = await requireView(pluginId);
-      const schema = readConfigSchema(definition?.manifest ?? install?.manifest);
+      const schema = readConfigSchema(
+        definition?.manifest ?? install?.manifest,
+      );
       const values = await readPluginPublicValues(persist, id);
       const secretKeysSet = [...(await persist.listSecretKeysSet(id))];
       const publicConfig = toPluginConfigPublic(values, secretKeysSet);
@@ -260,7 +284,12 @@ export function createAdminPluginService(
       const schema = readConfigSchema(definition?.manifest ?? current.manifest);
       const currentValues = await readPluginPublicValues(persist, id);
       const secretKeysSet = await persist.listSecretKeysSet(id);
-      const patched = applyPluginConfigPatch(schema, input, currentValues, secretKeysSet);
+      const patched = applyPluginConfigPatch(
+        schema,
+        input,
+        currentValues,
+        secretKeysSet,
+      );
       await persist.setKv(id, PLUGIN_ADMIN_CONFIG_KV_KEY, patched.values);
       await writeSecrets(persist, id, patched.secretWrites);
       const nextSecrets = [...(await persist.listSecretKeysSet(id))];
@@ -351,8 +380,12 @@ export function createAdminPluginService(
       const instance = await requireOwnedInstance(pluginId, instanceId);
       const install = await persist.getInstall(instance.pluginId);
       const definition = await manager?.getDefinition(instance.pluginId);
-      const schema = readConfigSchema(definition?.manifest ?? install?.manifest);
-      const secretKeysSet = [...(await persist.listSecretKeysSet(instance.pluginId, instance.id))];
+      const schema = readConfigSchema(
+        definition?.manifest ?? install?.manifest,
+      );
+      const secretKeysSet = [
+        ...(await persist.listSecretKeysSet(instance.pluginId, instance.id)),
+      ];
       const publicConfig = toPluginConfigPublic(instance.config, secretKeysSet);
       return {
         schema,
@@ -365,12 +398,31 @@ export function createAdminPluginService(
       const instance = await requireOwnedInstance(pluginId, instanceId);
       const install = await persist.getInstall(instance.pluginId);
       const definition = await manager?.getDefinition(instance.pluginId);
-      const schema = readConfigSchema(definition?.manifest ?? install?.manifest);
-      const secretKeysSet = await persist.listSecretKeysSet(instance.pluginId, instance.id);
-      const patched = applyPluginConfigPatch(schema, input, instance.config, secretKeysSet);
-      const row = await persist.updateInstance(instance.id, { config: patched.values });
-      await writeSecrets(persist, instance.pluginId, patched.secretWrites, instance.id);
-      const nextSecrets = [...(await persist.listSecretKeysSet(instance.pluginId, instance.id))];
+      const schema = readConfigSchema(
+        definition?.manifest ?? install?.manifest,
+      );
+      const secretKeysSet = await persist.listSecretKeysSet(
+        instance.pluginId,
+        instance.id,
+      );
+      const patched = applyPluginConfigPatch(
+        schema,
+        input,
+        instance.config,
+        secretKeysSet,
+      );
+      const row = await persist.updateInstance(instance.id, {
+        config: patched.values,
+      });
+      await writeSecrets(
+        persist,
+        instance.pluginId,
+        patched.secretWrites,
+        instance.id,
+      );
+      const nextSecrets = [
+        ...(await persist.listSecretKeysSet(instance.pluginId, instance.id)),
+      ];
       const publicConfig = toPluginConfigPublic(row.config, nextSecrets);
       return {
         schema,
@@ -390,7 +442,12 @@ export function applyPluginConfigPatch(
   values: Record<string, JsonValue>;
   secretWrites: Record<string, string | null>;
 } {
-  if (input === undefined || input === null || typeof input !== "object" || Array.isArray(input)) {
+  if (
+    input === undefined ||
+    input === null ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
     throw new ForgeConfigError("Config must be an object");
   }
   const record = input as Record<string, unknown>;
@@ -418,7 +475,9 @@ export function applyPluginConfigPatch(
         continue;
       }
       if (typeof raw !== "string") {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected secret`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected secret`,
+        );
       }
       merged[field.key] = raw;
       secretWrites[field.key] = raw;
@@ -440,7 +499,11 @@ export function applyPluginConfigPatch(
 }
 
 export function readConfigSchema(manifest: unknown): PluginConfigField[] {
-  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
     return [];
   }
   const config = (manifest as { config?: unknown }).config;
@@ -457,7 +520,10 @@ export function readConfigSchema(manifest: unknown): PluginConfigField[] {
   return fields;
 }
 
-export function redactHealthMessage(message: string, secrets: readonly string[]): string {
+export function redactHealthMessage(
+  message: string,
+  secrets: readonly string[],
+): string {
   let output = message;
   for (const secret of secrets) {
     if (secret.length === 0) {
@@ -465,10 +531,16 @@ export function redactHealthMessage(message: string, secrets: readonly string[])
     }
     output = output.split(secret).join(REDACTED);
   }
-  return output.replace(/"ciphertext"\s*:\s*"[^"]*"/g, `"ciphertext":"${REDACTED}"`);
+  return output.replace(
+    /"ciphertext"\s*:\s*"[^"]*"/g,
+    `"ciphertext":"${REDACTED}"`,
+  );
 }
 
-function createFallbackContext(pluginId: PluginId, instanceId?: string): PluginContext {
+function createFallbackContext(
+  pluginId: PluginId,
+  instanceId?: string,
+): PluginContext {
   const logger = {
     debug() {},
     info() {},
@@ -531,8 +603,14 @@ async function toView(
 ): Promise<AdminPluginView> {
   const instanceCount = await persist.countInstances(pluginId);
   const record = install
-    ? toPluginDefinitionRecord(overlayInstall(install, definition), instanceCount)
-    : toPluginDefinitionRecord(installFromDefinition(definition as PluginDefinition), instanceCount);
+    ? toPluginDefinitionRecord(
+        overlayInstall(install, definition),
+        instanceCount,
+      )
+    : toPluginDefinitionRecord(
+        installFromDefinition(definition as PluginDefinition),
+        instanceCount,
+      );
   const forgeApi = record.forgeApi;
   return {
     ...record,
@@ -586,11 +664,21 @@ async function readPluginPublicValues(
   pluginId: string,
 ): Promise<Record<string, JsonValue>> {
   const stored = await persist.getKv(pluginId, PLUGIN_ADMIN_CONFIG_KV_KEY);
-  if (stored === undefined || stored === null || typeof stored !== "object" || Array.isArray(stored)) {
+  if (
+    stored === undefined ||
+    stored === null ||
+    typeof stored !== "object" ||
+    Array.isArray(stored)
+  ) {
     return {};
   }
   const parsed = jsonValueSchema.safeParse(stored);
-  if (!parsed.success || typeof parsed.data !== "object" || parsed.data === null || Array.isArray(parsed.data)) {
+  if (
+    !parsed.success ||
+    typeof parsed.data !== "object" ||
+    parsed.data === null ||
+    Array.isArray(parsed.data)
+  ) {
     return {};
   }
   return parsed.data as Record<string, JsonValue>;
@@ -626,7 +714,9 @@ async function collectSecretValues(
   schema: readonly PluginConfigField[],
   instanceId?: string,
 ): Promise<string[]> {
-  const keys = schema.filter((field) => field.type === "secret").map((field) => field.key);
+  const keys = schema
+    .filter((field) => field.type === "secret")
+    .map((field) => field.key);
   const listed = await persist.listSecretKeysSet(pluginId, instanceId);
   const unique = new Set([...keys, ...listed]);
   const values: string[] = [];
@@ -665,7 +755,8 @@ async function runHealthCheck(options: {
     const status =
       options.fallbackStatus === "error"
         ? "unhealthy"
-        : options.fallbackStatus === "started" || options.fallbackStatus === "enabled"
+        : options.fallbackStatus === "started" ||
+            options.fallbackStatus === "enabled"
           ? "ok"
           : "degraded";
     const snapshot: PluginHealthSnapshot = {
@@ -688,7 +779,10 @@ async function runHealthCheck(options: {
     controller.abort();
   }, FORGE_HEALTH_TIMEOUT_MS);
   try {
-    const ctx = await options.createContext(options.pluginId, options.instanceId);
+    const ctx = await options.createContext(
+      options.pluginId,
+      options.instanceId,
+    );
     const result = await plugin.health(ctx, controller.signal);
     const snapshot: PluginHealthSnapshot = {
       status: result.status,

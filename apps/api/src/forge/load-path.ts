@@ -35,7 +35,11 @@ function resolveSafePluginPath(root: string, key: string): string {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, key);
   const relative = path.relative(resolvedRoot, resolved);
-  if (relative.startsWith("..") || path.isAbsolute(relative) || relative === "") {
+  if (
+    relative.startsWith("..") ||
+    path.isAbsolute(relative) ||
+    relative === ""
+  ) {
     throw new ForgeValidationError("Invalid plugin path");
   }
   return resolved;
@@ -58,7 +62,11 @@ export function assertPathInside(root: string, target: string): void {
   const resolvedRoot = path.resolve(root);
   const resolvedTarget = path.resolve(target);
   const relative = path.relative(resolvedRoot, resolvedTarget);
-  if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+  if (
+    relative === "" ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative)
+  ) {
     throw new ForgeValidationError("Path escapes plugin root");
   }
 }

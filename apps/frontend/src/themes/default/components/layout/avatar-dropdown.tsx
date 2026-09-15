@@ -15,7 +15,13 @@ export interface AvatarDropdownProps {
   className?: string;
 }
 
-export function AvatarDropdown({ user, items, extraItems, onSignOut, className }: AvatarDropdownProps) {
+export function AvatarDropdown({
+  user,
+  items,
+  extraItems,
+  onSignOut,
+  className,
+}: AvatarDropdownProps) {
   const {
     Avatar,
     AvatarFallback,
@@ -50,7 +56,9 @@ export function AvatarDropdown({ user, items, extraItems, onSignOut, className }
           {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
           <AvatarFallback>{userInitials(user)}</AvatarFallback>
         </Avatar>
-        <span className="min-w-0 truncate group-data-[collapsible=icon]:hidden">{user.username}</span>
+        <span className="min-w-0 truncate group-data-[collapsible=icon]:hidden">
+          {user.username}
+        </span>
         <ChevronDownIcon
           className={cn(
             "ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
@@ -61,12 +69,16 @@ export function AvatarDropdown({ user, items, extraItems, onSignOut, className }
       <DropdownMenuContent align="end" className="min-w-56 max-w-72">
         <div className="flex items-center gap-2 px-2 py-2">
           <Avatar size="sm">
-            {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
+            {user.avatarUrl ? (
+              <AvatarImage src={user.avatarUrl} alt="" />
+            ) : null}
             <AvatarFallback>{userInitials(user)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{fullName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {user.email}
+            </p>
           </div>
         </div>
         <DropdownMenuSeparator />
@@ -74,7 +86,10 @@ export function AvatarDropdown({ user, items, extraItems, onSignOut, className }
           {items.map((item) => {
             const Icon = item.icon;
             return (
-              <DropdownMenuItem key={`${item.to}-${item.label}`} render={<Link to={item.to} />}>
+              <DropdownMenuItem
+                key={`${item.to}-${item.label}`}
+                render={<Link to={item.to} />}
+              >
                 <Icon />
                 {item.label}
               </DropdownMenuItem>

@@ -283,7 +283,10 @@ describe("createGatewayRegistry", () => {
     const { registry, plugins } = await setup();
     const listed = await registry.listInstances(PAY_ID);
     expect(listed).toHaveLength(2);
-    expect(listed.map((row) => row.id).sort()).toEqual([INSTANCE_A, INSTANCE_B]);
+    expect(listed.map((row) => row.id).sort()).toEqual([
+      INSTANCE_A,
+      INSTANCE_B,
+    ]);
     expect(listed.every((row) => row.pluginId === PAY_ID)).toBe(true);
 
     const first = await registry.createCheckout(checkoutRequest(INSTANCE_A));
@@ -311,12 +314,12 @@ describe("createGatewayRegistry", () => {
       active: (pluginId) => pluginId === PAY_ID,
     });
 
-    await expect(registry.resolve("44444444-4444-4444-8444-444444444444")).rejects.toBeInstanceOf(
-      GatewayNotFoundError,
-    );
-    await expect(registry.resolve("44444444-4444-4444-8444-444444444444")).rejects.toBeInstanceOf(
-      ForgeNotFoundError,
-    );
+    await expect(
+      registry.resolve("44444444-4444-4444-8444-444444444444"),
+    ).rejects.toBeInstanceOf(GatewayNotFoundError);
+    await expect(
+      registry.resolve("44444444-4444-4444-8444-444444444444"),
+    ).rejects.toBeInstanceOf(ForgeNotFoundError);
 
     await persist.setInstanceEnabled(INSTANCE_A, false);
     await expect(registry.resolve(INSTANCE_A)).rejects.toBeInstanceOf(
@@ -328,7 +331,8 @@ describe("createGatewayRegistry", () => {
       persist,
       getGatewayPlugin: () => gatewayPlugin(PAY_ID),
       isPluginActive: () => false,
-      createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
     });
     await expect(disabledRegistry.resolve(INSTANCE_A)).rejects.toBeInstanceOf(
       GatewayPluginDisabledError,
@@ -338,15 +342,14 @@ describe("createGatewayRegistry", () => {
       GatewayWrongTypeError,
     );
     await expect(registry.getInstance(SERVICE_INSTANCE)).resolves.toBeNull();
-    await expect(registry.getInstance("44444444-4444-4444-8444-444444444444")).resolves.toBeNull();
+    await expect(
+      registry.getInstance("44444444-4444-4444-8444-444444444444"),
+    ).resolves.toBeNull();
   });
 
   it("exposes no card-number or CVC APIs", async () => {
     const { registry } = await setup();
-    const names = [
-      ...gatewayRegistryMethodNames(),
-      ...Object.keys(registry),
-    ];
+    const names = [...gatewayRegistryMethodNames(), ...Object.keys(registry)];
     expect(names.some((name) => /card|cvc|cvv|pan/i.test(name))).toBe(false);
     expect(registry).not.toHaveProperty("chargeCard");
     expect(registry).not.toHaveProperty("createPaymentIntent");
@@ -413,7 +416,8 @@ describe("createGatewayRegistry", () => {
       getGatewayPlugin: (pluginId) =>
         pluginId === PAY_ID ? secretPlugin : healthyPlugin,
       isPluginActive: () => true,
-      createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
     });
 
     let thrown: unknown;
@@ -462,7 +466,8 @@ describe("createGatewayRegistry", () => {
       persist,
       getGatewayPlugin: () => leaky,
       isPluginActive: () => true,
-      createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
     });
     const leakyResult = await leakyRegistry.health(INSTANCE_A);
     expect(leakyResult.status).toBe("ok");
@@ -475,7 +480,8 @@ describe("createGatewayRegistry", () => {
       persist,
       getGatewayPlugin: () => slow,
       isPluginActive: () => true,
-      createContext: (pluginId, instanceId) => fakeContext(pluginId, instanceId),
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
       healthTimeoutMs: 20,
     });
     const timedOut = await slowRegistry.health(INSTANCE_A);
@@ -506,8 +512,8 @@ describe("createGatewayRegistry", () => {
       enabled: true,
       status: "started",
     });
-    await expect(registry.createCheckout(checkoutRequest(INSTANCE_A))).rejects.toBeInstanceOf(
-      ForgePermissionError,
-    );
+    await expect(
+      registry.createCheckout(checkoutRequest(INSTANCE_A)),
+    ).rejects.toBeInstanceOf(ForgePermissionError);
   });
 });

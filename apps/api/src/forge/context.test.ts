@@ -53,15 +53,27 @@ async function context(options: {
 describe("plugin context permissions", () => {
   it("denies missing capabilities with ForgePermissionError", async () => {
     const ctx = await context({ permissions: [] });
-    await expect(ctx.storage.get("state")).rejects.toBeInstanceOf(ForgePermissionError);
-    await expect(ctx.storage.set("state", 1)).rejects.toBeInstanceOf(ForgePermissionError);
-    await expect(ctx.http.request({ url: "https://panel.example.com" })).rejects.toBeInstanceOf(
+    await expect(ctx.storage.get("state")).rejects.toBeInstanceOf(
       ForgePermissionError,
     );
-    expect(() => ctx.events.on("user.created", () => undefined)).toThrow(ForgePermissionError);
-    await expect(ctx.jobs.schedule({ name: "tick" })).rejects.toBeInstanceOf(ForgePermissionError);
-    await expect(ctx.users.getById("u1")).rejects.toBeInstanceOf(ForgePermissionError);
-    await expect(ctx.settings.getPublic()).rejects.toBeInstanceOf(ForgePermissionError);
+    await expect(ctx.storage.set("state", 1)).rejects.toBeInstanceOf(
+      ForgePermissionError,
+    );
+    await expect(
+      ctx.http.request({ url: "https://panel.example.com" }),
+    ).rejects.toBeInstanceOf(ForgePermissionError);
+    expect(() => ctx.events.on("user.created", () => undefined)).toThrow(
+      ForgePermissionError,
+    );
+    await expect(ctx.jobs.schedule({ name: "tick" })).rejects.toBeInstanceOf(
+      ForgePermissionError,
+    );
+    await expect(ctx.users.getById("u1")).rejects.toBeInstanceOf(
+      ForgePermissionError,
+    );
+    await expect(ctx.settings.getPublic()).rejects.toBeInstanceOf(
+      ForgePermissionError,
+    );
   });
 });
 
@@ -82,8 +94,12 @@ describe("plugin storage namespace", () => {
     expect(await mail.storage.get("state/item")).toEqual({ owner: "mail" });
     expect(await dns.storage.get("state/item")).toBeUndefined();
     await dns.storage.set("state/item", { owner: "dns" });
-    expect(await persist.getKv("acme.mail", "state/item")).toEqual({ owner: "mail" });
-    expect(await persist.getKv("acme.dns", "state/item")).toEqual({ owner: "dns" });
+    expect(await persist.getKv("acme.mail", "state/item")).toEqual({
+      owner: "mail",
+    });
+    expect(await persist.getKv("acme.dns", "state/item")).toEqual({
+      owner: "dns",
+    });
     expect("forPlugin" in mail.storage).toBe(false);
     expect(mail.pluginId).toBe("acme.mail");
     expect(dns.pluginId).toBe("acme.dns");

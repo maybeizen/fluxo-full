@@ -47,12 +47,7 @@ interface Candidate {
 }
 
 type ManagerHook =
-  | "onInstall"
-  | "onEnable"
-  | "onStart"
-  | "onStop"
-  | "onDisable"
-  | "onUninstall";
+  "onInstall" | "onEnable" | "onStart" | "onStop" | "onDisable" | "onUninstall";
 
 const DEFAULT_INSTALL_STATE: PluginInstallState = {
   installed: false,
@@ -200,7 +195,11 @@ export function createPluginManager(
     }
   }
 
-  function fail(entry: PluginEntry, error: string, dropPlugin: boolean): PluginEntry {
+  function fail(
+    entry: PluginEntry,
+    error: string,
+    dropPlugin: boolean,
+  ): PluginEntry {
     if (dropPlugin) {
       entry.plugin = undefined;
     }
@@ -248,7 +247,9 @@ export function createPluginManager(
     };
   }
 
-  async function loadCandidate(candidate: Candidate): Promise<PluginLoadResult> {
+  async function loadCandidate(
+    candidate: Candidate,
+  ): Promise<PluginLoadResult> {
     const { pluginRoot, id, manifest } = candidate;
 
     if (manifest.id !== id) {
@@ -394,7 +395,9 @@ export function createPluginManager(
       const message = `duplicate plugin id: ${pluginId}`;
       const first = group[0];
       if (first) {
-        remember(fail(baseEntry(first.pluginRoot, first.manifest), message, true));
+        remember(
+          fail(baseEntry(first.pluginRoot, first.manifest), message, true),
+        );
       }
       for (const candidate of group) {
         results.push(failedResult(candidate.manifest.id, message));
@@ -592,9 +595,7 @@ export function createPluginManager(
       const manifest = parsePluginManifest(raw);
       await loadCandidate({ pluginRoot, id: pluginId, manifest });
     } catch (error) {
-      remember(
-        fail(entry, errorMessage(error), true),
-      );
+      remember(fail(entry, errorMessage(error), true));
     }
   }
 
@@ -602,9 +603,7 @@ export function createPluginManager(
     return list();
   }
 
-  async function getDefinition(
-    id: PluginId,
-  ): Promise<PluginDefinition | null> {
+  async function getDefinition(id: PluginId): Promise<PluginDefinition | null> {
     const pluginId = parsePluginId(id);
     const entry = entries.get(pluginId);
     return entry ? toDefinition(entry) : null;

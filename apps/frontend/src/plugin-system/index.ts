@@ -1,4 +1,8 @@
-export { loadPanelPluginCatalog, panelPluginCatalog, parsePanelPluginCatalogId } from "./catalog";
+export {
+  loadPanelPluginCatalog,
+  panelPluginCatalog,
+  parsePanelPluginCatalogId,
+} from "./catalog";
 export type { PanelPluginCatalogId } from "./catalog";
 export {
   toPluginPublicSettings,

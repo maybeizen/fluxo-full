@@ -56,7 +56,9 @@ export interface ForgeWebhookRouteDeps {
     instanceId?: string,
   ): PluginContext | Promise<PluginContext>;
   logger: FluxoLogger;
-  listWebhookHandlers?(pluginId: string): readonly string[] | Promise<readonly string[]>;
+  listWebhookHandlers?(
+    pluginId: string,
+  ): readonly string[] | Promise<readonly string[]>;
   rateLimitMax?: number;
   rateLimitWindowMs?: number;
 }
@@ -99,7 +101,10 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
     "/:pluginId/:instanceId/:handler",
     async (c) => {
       const requestIdValue = c.get("requestId");
-      const ip = clientIp(c.req.header("x-forwarded-for"), c.req.header("x-real-ip"));
+      const ip = clientIp(
+        c.req.header("x-forwarded-for"),
+        c.req.header("x-real-ip"),
+      );
       if (!limiter.allow(`${ip}:${c.req.path}`)) {
         return jsonForgeError(c, RATE_LIMITED, requestIdValue);
       }
@@ -146,7 +151,11 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
       }
 
       if (!allowsWebhooks(install.manifest)) {
-        return jsonForgeError(c, new ForgePermissionError("webhooks.receive"), requestIdValue);
+        return jsonForgeError(
+          c,
+          new ForgePermissionError("webhooks.receive"),
+          requestIdValue,
+        );
       }
 
       const allowed = await resolveHandlerNames(deps, pluginId, plugin);
@@ -335,7 +344,10 @@ function jsonForgeError(
   error: ForgeError,
   requestIdValue: string | undefined,
 ): Response {
-  const response = c.json(forgeErrorBody(error), error.status as ContentfulStatusCode);
+  const response = c.json(
+    forgeErrorBody(error),
+    error.status as ContentfulStatusCode,
+  );
   if (requestIdValue) {
     response.headers.set("X-Request-Id", requestIdValue);
   }
@@ -357,17 +369,25 @@ function asResponseStatus(status: number): ContentfulStatusCode {
 }
 
 function allowsWebhooks(manifest: unknown): boolean {
-  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
     return false;
   }
   const permissions = (manifest as { permissions?: unknown }).permissions;
   return (
     Array.isArray(permissions) &&
-    (permissions.includes("webhooks.receive") || permissions.includes("billing.webhook"))
+    (permissions.includes("webhooks.receive") ||
+      permissions.includes("billing.webhook"))
   );
 }
 
-function clientIp(forwarded: string | undefined, realIp: string | undefined): string {
+function clientIp(
+  forwarded: string | undefined,
+  realIp: string | undefined,
+): string {
   if (forwarded) {
     const first = forwarded.split(",")[0]?.trim();
     if (first) {

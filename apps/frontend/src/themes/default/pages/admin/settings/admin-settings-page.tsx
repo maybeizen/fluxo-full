@@ -1,5 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
-import type { AdminSettingsTabId, AdminSettingsTabItem } from "@/features/admin/settings/settings-tabs";
+import type {
+  AdminSettingsTabId,
+  AdminSettingsTabItem,
+} from "@/features/admin/settings/settings-tabs";
 import type { AdminSettingsModel } from "@/hooks/use-admin-settings";
 import { useT } from "@/theme-system/use-t";
 import { useUI } from "@/theme-system/use-ui";
@@ -48,7 +51,10 @@ export function AdminSettingsPage({
     storage: AdminSettingsStorageTab,
     security: AdminSettingsSecurityTab,
     billing: AdminSettingsBillingTab,
-  } satisfies Record<AdminSettingsTabId, ComponentType<{ model: AdminSettingsModel }>>;
+  } satisfies Record<
+    AdminSettingsTabId,
+    ComponentType<{ model: AdminSettingsModel }>
+  >;
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,7 +63,9 @@ export function AdminSettingsPage({
           <h1 className="font-heading text-2xl font-medium tracking-tight">
             {t("admin.settings.title")}
           </h1>
-          <p className="text-sm text-muted-foreground">{t("admin.settings.description")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.settings.description")}
+          </p>
         </div>
         {model.formError ? (
           <Alert variant="destructive">
@@ -81,7 +89,9 @@ export function AdminSettingsPage({
           <Card>
             <CardHeader>
               <CardTitle>{t("admin.settings.panelTitle")}</CardTitle>
-              <CardDescription>{t("admin.settings.panelDescription")}</CardDescription>
+              <CardDescription>
+                {t("admin.settings.panelDescription")}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue={tabs[0]?.id ?? "application"}>
@@ -109,7 +119,9 @@ export function AdminSettingsPage({
             <CardFooter className="justify-end">
               <Button type="submit" disabled={model.saving}>
                 {model.saving ? <Spinner data-icon="inline-start" /> : null}
-                {model.saving ? t("admin.settings.saving") : t("admin.settings.save")}
+                {model.saving
+                  ? t("admin.settings.saving")
+                  : t("admin.settings.save")}
               </Button>
             </CardFooter>
           </Card>

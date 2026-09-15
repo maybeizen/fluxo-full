@@ -13,13 +13,27 @@ export interface PanelContributionBaseProps {
 }
 
 export type PanelContributionPropsMap = {
-  "client.shell.accountMenu": PanelContributionBaseProps & { user: PluginUserView };
-  "client.dashboard.services": PanelContributionBaseProps & { user: PluginUserView };
-  "client.dashboard.invoices": PanelContributionBaseProps & { user: PluginUserView };
-  "client.dashboard.news": PanelContributionBaseProps & { user: PluginUserView };
-  "client.dashboard.support": PanelContributionBaseProps & { user: PluginUserView };
-  "client.settings.section": PanelContributionBaseProps & { user: PluginUserView };
-  "admin.dashboard.widget": PanelContributionBaseProps & { user: PluginUserView };
+  "client.shell.accountMenu": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "client.dashboard.services": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "client.dashboard.invoices": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "client.dashboard.news": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "client.dashboard.support": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "client.settings.section": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
+  "admin.dashboard.widget": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
   "admin.nav.item": PanelContributionBaseProps & { user: PluginUserView };
   "admin.users.listAction": PanelContributionBaseProps & {
     user: PluginUserView;
@@ -29,7 +43,9 @@ export type PanelContributionPropsMap = {
     user: PluginUserView;
     targetUser: PluginUserView;
   };
-  "admin.settings.section": PanelContributionBaseProps & { user: PluginUserView };
+  "admin.settings.section": PanelContributionBaseProps & {
+    user: PluginUserView;
+  };
   "auth.login.extra": PanelContributionBaseProps;
 };
 
@@ -38,19 +54,23 @@ export type PanelSlotProps<P extends PanelExtensionPoint> = Omit<
   "pluginId" | "contributionId"
 >;
 
-export interface FrontendPanelContribution<P extends PanelExtensionPoint = PanelExtensionPoint>
-  extends PanelContribution {
+export interface FrontendPanelContribution<
+  P extends PanelExtensionPoint = PanelExtensionPoint,
+> extends PanelContribution {
   point: P;
   component?: ComponentType<PanelContributionPropsMap[P]>;
 }
 
-export type RenderablePanelContribution<P extends PanelExtensionPoint = PanelExtensionPoint> =
-  FrontendPanelContribution<P> & {
-    component: ComponentType<PanelContributionPropsMap[P]>;
-  };
+export type RenderablePanelContribution<
+  P extends PanelExtensionPoint = PanelExtensionPoint,
+> = FrontendPanelContribution<P> & {
+  component: ComponentType<PanelContributionPropsMap[P]>;
+};
 
 export interface PanelPluginRegistrationApi {
-  register: <P extends PanelExtensionPoint>(contribution: RenderablePanelContribution<P>) => void;
+  register: <P extends PanelExtensionPoint>(
+    contribution: RenderablePanelContribution<P>,
+  ) => void;
 }
 
 export interface PanelPluginModule {

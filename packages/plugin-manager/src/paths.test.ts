@@ -1,4 +1,11 @@
-import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { ForgeValidationError } from "@fluxo/forge";
@@ -12,7 +19,9 @@ import {
 const dirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 async function tempDir(): Promise<string> {
@@ -24,7 +33,9 @@ async function tempDir(): Promise<string> {
 describe("assertSafePluginIdInput", () => {
   it("accepts canonical plugin ids", () => {
     expect(assertSafePluginIdInput("demo")).toBe("demo");
-    expect(assertSafePluginIdInput("acme.pterodactyl")).toBe("acme.pterodactyl");
+    expect(assertSafePluginIdInput("acme.pterodactyl")).toBe(
+      "acme.pterodactyl",
+    );
   });
 
   it("rejects traversal, absolute, URL-like, null-byte, and Windows ids", () => {
@@ -46,7 +57,9 @@ describe("assertSafePluginIdInput", () => {
       "",
     ];
     for (const value of invalid) {
-      expect(() => assertSafePluginIdInput(value)).toThrow(ForgeValidationError);
+      expect(() => assertSafePluginIdInput(value)).toThrow(
+        ForgeValidationError,
+      );
     }
   });
 });
@@ -85,16 +98,20 @@ describe("resolvePluginEntryFile", () => {
     const root = await tempDir();
     const pluginRoot = path.join(root, "demo");
     await mkdir(pluginRoot, { recursive: true });
-    await writeFile(path.join(pluginRoot, "index.js"), "export default {}\n", "utf8");
-    await expect(resolvePluginEntryFile(pluginRoot, "../secret.js")).rejects.toBeInstanceOf(
-      ForgeValidationError,
+    await writeFile(
+      path.join(pluginRoot, "index.js"),
+      "export default {}\n",
+      "utf8",
     );
-    await expect(resolvePluginEntryFile(pluginRoot, "/etc/passwd")).rejects.toBeInstanceOf(
-      ForgeValidationError,
-    );
-    await expect(resolvePluginEntryFile(pluginRoot, "missing.js")).rejects.toBeInstanceOf(
-      ForgeValidationError,
-    );
+    await expect(
+      resolvePluginEntryFile(pluginRoot, "../secret.js"),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
+    await expect(
+      resolvePluginEntryFile(pluginRoot, "/etc/passwd"),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
+    await expect(
+      resolvePluginEntryFile(pluginRoot, "missing.js"),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
   });
 
   it("rejects a symlink that escapes the plugin root", async () => {
@@ -104,8 +121,8 @@ describe("resolvePluginEntryFile", () => {
     const outside = path.join(root, "secret.js");
     await writeFile(outside, "export default {}\n", "utf8");
     await symlink(outside, path.join(pluginRoot, "link.js"));
-    await expect(resolvePluginEntryFile(pluginRoot, "link.js")).rejects.toBeInstanceOf(
-      ForgeValidationError,
-    );
+    await expect(
+      resolvePluginEntryFile(pluginRoot, "link.js"),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
   });
 });

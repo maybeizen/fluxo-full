@@ -17,7 +17,14 @@ import {
 
 export const FORGE_HTTP_MAX_BODY_BYTES = 1_048_576;
 
-const ALLOWED_METHODS = new Set<string>(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]);
+const ALLOWED_METHODS = new Set<string>([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+]);
 
 export interface CreatePluginHttpOptions {
   pluginId: string;
@@ -37,7 +44,9 @@ export function createPluginHttp(options: CreatePluginHttpOptions): PluginHttp {
         throw new ForgePermissionError("http.outbound");
       }
       if (options.allowlist.length === 0) {
-        throw new ForgeHttpError("Outbound HTTP is disabled: PLUGIN_HTTP_ALLOWLIST is empty");
+        throw new ForgeHttpError(
+          "Outbound HTTP is disabled: PLUGIN_HTTP_ALLOWLIST is empty",
+        );
       }
 
       const url = parseRequestUrl(request.url);
@@ -98,7 +107,10 @@ export function createPluginHttp(options: CreatePluginHttpOptions): PluginHttp {
   };
 }
 
-export function isHttpHostAllowed(url: URL, allowlist: readonly string[]): boolean {
+export function isHttpHostAllowed(
+  url: URL,
+  allowlist: readonly string[],
+): boolean {
   if (allowlist.length === 0) {
     return false;
   }
@@ -197,7 +209,8 @@ function buildHeaders(
       result[key] = value;
     }
   }
-  result["User-Agent"] = `Fluxo-Forge/${FORGE_API_VERSION} (plugin; ${pluginId})`;
+  result["User-Agent"] =
+    `Fluxo-Forge/${FORGE_API_VERSION} (plugin; ${pluginId})`;
   return result;
 }
 
@@ -230,13 +243,18 @@ function hasHeader(headers: Record<string, string>, name: string): boolean {
   return Object.keys(headers).some((key) => key.toLowerCase() === match);
 }
 
-async function readResponseBody(response: Response): Promise<JsonValue | Uint8Array> {
+async function readResponseBody(
+  response: Response,
+): Promise<JsonValue | Uint8Array> {
   const buffer = new Uint8Array(await response.arrayBuffer());
   if (buffer.byteLength > FORGE_HTTP_MAX_BODY_BYTES) {
     throw new ForgeHttpError("HTTP response body exceeds size limit");
   }
   const contentType = response.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json") || contentType.includes("+json")) {
+  if (
+    contentType.includes("application/json") ||
+    contentType.includes("+json")
+  ) {
     const text = new TextDecoder().decode(buffer);
     try {
       return JSON.parse(text) as JsonValue;
@@ -244,7 +262,10 @@ async function readResponseBody(response: Response): Promise<JsonValue | Uint8Ar
       return text;
     }
   }
-  if (contentType.startsWith("text/") || contentType.includes("application/javascript")) {
+  if (
+    contentType.startsWith("text/") ||
+    contentType.includes("application/javascript")
+  ) {
     return new TextDecoder().decode(buffer);
   }
   return buffer;

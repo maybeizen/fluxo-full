@@ -19,15 +19,15 @@ const ctx = await host.createContext(pluginId, instanceId);
 
 `ForgeHost` is defined in `apps/api/src/forge/host.ts` and re-exported from `boot.ts`.
 
-| Field | Use |
-| --- | --- |
-| `persist` | Group B `PluginPersist` (installs, instances, KV, secrets) |
-| `manager` | Group A `PluginManager` (`loadAll`, lifecycle, `getActive`) |
-| `services` | Group D `HostServiceRegistry` (`listInstances`, `getInstance`, `resolve`) |
-| `gateways` | Group E `FluxoGatewayRegistry` (`resolve`, checkout, refund, `handleWebhook`) |
-| `createContext(pluginId, instanceId?)` | Builds `PluginContext` with the trusted plugin id |
-| `events` | Host event bus. Plugins subscribe through `ctx.events`. Host code emits with `emitForgeEvent` from `events.ts` |
-| `jobs` | In-process scheduler. Plugins use `ctx.jobs.schedule` / `cancel` / `handle` |
+| Field                                  | Use                                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `persist`                              | Group B `PluginPersist` (installs, instances, KV, secrets)                                                     |
+| `manager`                              | Group A `PluginManager` (`loadAll`, lifecycle, `getActive`)                                                    |
+| `services`                             | Group D `HostServiceRegistry` (`listInstances`, `getInstance`, `resolve`)                                      |
+| `gateways`                             | Group E `FluxoGatewayRegistry` (`resolve`, checkout, refund, `handleWebhook`)                                  |
+| `createContext(pluginId, instanceId?)` | Builds `PluginContext` with the trusted plugin id                                                              |
+| `events`                               | Host event bus. Plugins subscribe through `ctx.events`. Host code emits with `emitForgeEvent` from `events.ts` |
+| `jobs`                                 | In-process scheduler. Plugins use `ctx.jobs.schedule` / `cancel` / `handle`                                    |
 
 Do not import `apps/api/src/forge/persist.ts` constructors from registries if the running host already has persist; reuse `getForgeHost().persist`.
 
@@ -78,7 +78,8 @@ app.route(
     passkeys: auth.passkeys,
     persist: forge.persist,
     manager: forge.manager,
-    createContext: (pluginId, instanceId) => forge.createContext(pluginId, instanceId),
+    createContext: (pluginId, instanceId) =>
+      forge.createContext(pluginId, instanceId),
   }),
 );
 ```

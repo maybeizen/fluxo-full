@@ -7,14 +7,18 @@ Group G owns the admin inspection API and plugins page. Routes are mounted in `a
 ```ts
 import { adminPluginRoutes } from "./routes/admin-plugins.js";
 
-app.route("/admin", adminPluginRoutes({
-  sessions: auth.sessions,
-  users: auth.users,
-  passkeys: auth.passkeys,
-  persist,
-  manager,
-  createContext: (pluginId, instanceId) => host.createContext(pluginId, instanceId),
-}));
+app.route(
+  "/admin",
+  adminPluginRoutes({
+    sessions: auth.sessions,
+    users: auth.users,
+    passkeys: auth.passkeys,
+    persist,
+    manager,
+    createContext: (pluginId, instanceId) =>
+      host.createContext(pluginId, instanceId),
+  }),
+);
 ```
 
 `persist` is `createPostgresPluginPersist` / `createMemoryPluginPersist`. `manager` and `createContext` are optional so this compiles before Group C boots Forge. Prefer injecting them from the host factory; do not import `boot.ts`.
@@ -29,25 +33,25 @@ Same guards as other admin APIs: `requireSession` then `requireAdmin`. Unauthent
 
 Mounted at `/admin`:
 
-| Method | Path | Action |
-| --- | --- | --- |
-| GET | `/plugins` | List installed and discovered definitions |
-| GET | `/plugins/:pluginId` | One definition |
-| POST | `/plugins/:pluginId/enable` | Enable (manager enable + persist) |
-| POST | `/plugins/:pluginId/disable` | Disable; 409 `forge_conflict` when enabled instances exist (`assertCanDisable`) |
-| DELETE | `/plugins/:pluginId` | Uninstall. KV/secrets kept unless `?purgeStorage=true` (or JSON `{ "purgeStorage": true }`) |
-| GET | `/plugins/:pluginId/config` | Manifest schema + non-secret values + `secretKeysSet` |
-| PUT | `/plugins/:pluginId/config` | `validatePluginConfig`; secrets sealed; blank secret keeps the saved value; `null` clears |
-| POST | `/plugins/:pluginId/health` | On-demand health (5s timeout) |
-| GET | `/plugins/:pluginId/instances` | Instance list |
-| POST | `/plugins/:pluginId/instances` | Create (`displayName`, optional `enabled`) |
-| GET | `/plugins/:pluginId/instances/:instanceId` | One instance |
-| PATCH | `/plugins/:pluginId/instances/:instanceId` | Update name/enabled |
-| POST | `/plugins/:pluginId/instances/:instanceId/enable` | Enable instance |
-| POST | `/plugins/:pluginId/instances/:instanceId/disable` | Disable instance |
-| DELETE | `/plugins/:pluginId/instances/:instanceId` | Delete instance |
-| GET/PUT | `/plugins/:pluginId/instances/:instanceId/config` | Instance config (same secret rules) |
-| POST | `/plugins/:pluginId/instances/:instanceId/health` | Instance health |
+| Method  | Path                                               | Action                                                                                      |
+| ------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| GET     | `/plugins`                                         | List installed and discovered definitions                                                   |
+| GET     | `/plugins/:pluginId`                               | One definition                                                                              |
+| POST    | `/plugins/:pluginId/enable`                        | Enable (manager enable + persist)                                                           |
+| POST    | `/plugins/:pluginId/disable`                       | Disable; 409 `forge_conflict` when enabled instances exist (`assertCanDisable`)             |
+| DELETE  | `/plugins/:pluginId`                               | Uninstall. KV/secrets kept unless `?purgeStorage=true` (or JSON `{ "purgeStorage": true }`) |
+| GET     | `/plugins/:pluginId/config`                        | Manifest schema + non-secret values + `secretKeysSet`                                       |
+| PUT     | `/plugins/:pluginId/config`                        | `validatePluginConfig`; secrets sealed; blank secret keeps the saved value; `null` clears   |
+| POST    | `/plugins/:pluginId/health`                        | On-demand health (5s timeout)                                                               |
+| GET     | `/plugins/:pluginId/instances`                     | Instance list                                                                               |
+| POST    | `/plugins/:pluginId/instances`                     | Create (`displayName`, optional `enabled`)                                                  |
+| GET     | `/plugins/:pluginId/instances/:instanceId`         | One instance                                                                                |
+| PATCH   | `/plugins/:pluginId/instances/:instanceId`         | Update name/enabled                                                                         |
+| POST    | `/plugins/:pluginId/instances/:instanceId/enable`  | Enable instance                                                                             |
+| POST    | `/plugins/:pluginId/instances/:instanceId/disable` | Disable instance                                                                            |
+| DELETE  | `/plugins/:pluginId/instances/:instanceId`         | Delete instance                                                                             |
+| GET/PUT | `/plugins/:pluginId/instances/:instanceId/config`  | Instance config (same secret rules)                                                         |
+| POST    | `/plugins/:pluginId/instances/:instanceId/health`  | Instance health                                                                             |
 
 Plugin-level non-secret config is stored in plugin KV at `fluxo/admin-config`. Secrets use `plugin_secrets` (plugin-scoped or instance-scoped). GET never returns secret values.
 

@@ -2,7 +2,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UserRole } from "@fluxo/types";
 import { PluginSlot } from "./plugin-slot";
-import { registerPanelContribution, resetPanelExtensionRegistry } from "./registry";
+import {
+  registerPanelContribution,
+  resetPanelExtensionRegistry,
+} from "./registry";
 import type { PanelContributionPropsMap } from "./types";
 
 afterEach(() => {
@@ -27,7 +30,9 @@ const user = {
   suspended: false,
 };
 
-function OkWidget({ contributionId }: PanelContributionPropsMap["admin.dashboard.widget"]) {
+function OkWidget({
+  contributionId,
+}: PanelContributionPropsMap["admin.dashboard.widget"]) {
   return <p>{contributionId} ok</p>;
 }
 

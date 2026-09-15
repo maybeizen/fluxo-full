@@ -21,9 +21,18 @@ const CUSTOM_NAME_PATTERN = /^[a-z][a-z0-9_.-]{0,63}$/;
 type AnyHandler = (payload: unknown) => Promise<void> | void;
 
 export interface ForgeEventBus {
-  on<K extends ForgeEventName>(event: K, handler: ForgeEventHandler<K>): () => void;
-  onCustom(name: string, handler: (payload: JsonValue) => Promise<void> | void): () => void;
-  emit<K extends ForgeEventName>(event: K, payload: ForgeEventMap[K]): Promise<void>;
+  on<K extends ForgeEventName>(
+    event: K,
+    handler: ForgeEventHandler<K>,
+  ): () => void;
+  onCustom(
+    name: string,
+    handler: (payload: JsonValue) => Promise<void> | void,
+  ): () => void;
+  emit<K extends ForgeEventName>(
+    event: K,
+    payload: ForgeEventMap[K],
+  ): Promise<void>;
   emitCustom(name: string, payload: JsonValue): Promise<void>;
 }
 
@@ -101,7 +110,9 @@ export async function emitForgeEvent<K extends ForgeEventName>(
   await activeBus?.emit(event, payload);
 }
 
-export function createPluginEvents(options: CreatePluginEventsOptions): PluginEvents {
+export function createPluginEvents(
+  options: CreatePluginEventsOptions,
+): PluginEvents {
   const permissions = new Set(options.permissions);
   return {
     on(event, handler) {

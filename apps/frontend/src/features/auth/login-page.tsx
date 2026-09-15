@@ -10,7 +10,12 @@ export function LoginPage() {
   return (
     <LoginForm
       {...login}
-      extra={<PluginSlot point="auth.login.extra" slotProps={{ settings: toPluginPublicSettings(settings) }} />}
+      extra={
+        <PluginSlot
+          point="auth.login.extra"
+          slotProps={{ settings: toPluginPublicSettings(settings) }}
+        />
+      }
     />
   );
 }

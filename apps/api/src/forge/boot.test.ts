@@ -1,7 +1,11 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { FORGE_API_VERSION, forgeWebhookPath, type PluginLogger } from "@fluxo/forge";
+import {
+  FORGE_API_VERSION,
+  forgeWebhookPath,
+  type PluginLogger,
+} from "@fluxo/forge";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.js";
 import { createMemoryAuth } from "../auth/stores/memory.js";
@@ -12,7 +16,9 @@ const dirs: string[] = [];
 
 afterEach(async () => {
   await stopForge();
-  await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 function silentLogger(): PluginLogger {
@@ -56,7 +62,11 @@ async function writePlugin(
   const pluginManifest = manifest(id, extra);
   const root = path.join(directory, id);
   await mkdir(root, { recursive: true });
-  await writeFile(path.join(root, "plugin.json"), JSON.stringify(pluginManifest), "utf8");
+  await writeFile(
+    path.join(root, "plugin.json"),
+    JSON.stringify(pluginManifest),
+    "utf8",
+  );
   await writeFile(path.join(root, "index.js"), source, "utf8");
   return pluginManifest;
 }
@@ -64,7 +74,11 @@ async function writePlugin(
 describe("startForge", () => {
   it("continues if one plugin fails to load", async () => {
     const directory = await tempDir();
-    await writePlugin(directory, "acme.boom", `throw new Error("boom at import");\n`);
+    await writePlugin(
+      directory,
+      "acme.boom",
+      `throw new Error("boom at import");\n`,
+    );
     await writePlugin(
       directory,
       "acme.ok",
@@ -79,9 +93,13 @@ describe("startForge", () => {
     expect(getForgeHost()).toBe(host);
     const results = host.manager.list();
     expect(results.some((item) => item.id === "acme.ok")).toBe(true);
-    expect(host.manager.list().find((item) => item.id === "acme.ok")?.status).not.toBe("error");
+    expect(
+      host.manager.list().find((item) => item.id === "acme.ok")?.status,
+    ).not.toBe("error");
     expect(host.manager.getActive("acme.boom")).toBeUndefined();
-    expect(host.manager.list().find((item) => item.id === "acme.boom")?.status).toBe("error");
+    expect(
+      host.manager.list().find((item) => item.id === "acme.boom")?.status,
+    ).toBe("error");
     expect(host.persist).toBe(persist);
     expect(typeof host.createContext).toBe("function");
     expect(host.services).toBe(getForgeHost().services);
@@ -151,7 +169,11 @@ describe("startForge", () => {
 `,
       {
         type: "gateway",
-        permissions: ["billing.checkout", "billing.webhook", "webhooks.receive"],
+        permissions: [
+          "billing.checkout",
+          "billing.webhook",
+          "webhooks.receive",
+        ],
       },
     );
     const persist = createMemoryPluginPersist();

@@ -4,12 +4,12 @@ Host-side storage for Fluxo Forge. Plugins never receive a database client. Grou
 
 ## Tables
 
-| Table | Purpose |
-| --- | --- |
-| `plugin_installs` | Package/definition state: id, type, version, enabled, lifecycle status, error, discovered path/hash, manifest snapshot |
-| `plugin_instances` | Configured service/gateway instances of a plugin (many per definition). Foreign key to installs uses `ON DELETE RESTRICT`. |
-| `plugin_kv` | Namespaced JSON KV. Composite primary key `(plugin_id, key)`. **No FK to installs.** |
-| `plugin_secrets` | Sealed secrets per plugin and optional instance. Unique `(plugin_id, instance_id, key)` with empty `instance_id` for plugin-scoped secrets. **No FK to installs.** |
+| Table              | Purpose                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plugin_installs`  | Package/definition state: id, type, version, enabled, lifecycle status, error, discovered path/hash, manifest snapshot                                             |
+| `plugin_instances` | Configured service/gateway instances of a plugin (many per definition). Foreign key to installs uses `ON DELETE RESTRICT`.                                         |
+| `plugin_kv`        | Namespaced JSON KV. Composite primary key `(plugin_id, key)`. **No FK to installs.**                                                                               |
+| `plugin_secrets`   | Sealed secrets per plugin and optional instance. Unique `(plugin_id, instance_id, key)` with empty `instance_id` for plugin-scoped secrets. **No FK to installs.** |
 
 Uninstall deletes the install row only. KV and secrets are retained until `purgeKv` / `purgeSecrets` or `uninstall(id, { purgeStorage: true })`. Uninstall is blocked while instances exist; disabling a definition is blocked while enabled instances exist.
 

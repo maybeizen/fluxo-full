@@ -36,8 +36,23 @@ const dnsManifest = {
 };
 
 const configSchema: PluginConfigField[] = [
-  { key: "host", type: "text", label: "Host", required: true, minLength: 1, maxLength: 80 },
-  { key: "port", type: "number", label: "Port", integer: true, min: 1, max: 65535, default: 25 },
+  {
+    key: "host",
+    type: "text",
+    label: "Host",
+    required: true,
+    minLength: 1,
+    maxLength: 80,
+  },
+  {
+    key: "port",
+    type: "number",
+    label: "Port",
+    integer: true,
+    min: 1,
+    max: 65535,
+    default: 25,
+  },
   { key: "secure", type: "boolean", label: "Secure", default: false },
   { key: "api_token", type: "secret", label: "API token", required: true },
   {
@@ -70,12 +85,16 @@ describe("storage identifiers", () => {
   });
 
   it("rejects traversal, empty segments, and prototype keys", () => {
-    expect(() => assertStorageKey("../etc/passwd")).toThrow(ForgeValidationError);
+    expect(() => assertStorageKey("../etc/passwd")).toThrow(
+      ForgeValidationError,
+    );
     expect(() => assertStorageKey("foo/../bar")).toThrow(ForgeValidationError);
     expect(() => assertStorageKey("foo//bar")).toThrow(ForgeValidationError);
     expect(() => assertStorageKey("__proto__")).toThrow(ForgeValidationError);
     expect(() => assertStorageKey("constructor")).toThrow(ForgeValidationError);
-    expect(() => assertStorageKey("foo/prototype/bar")).toThrow(ForgeValidationError);
+    expect(() => assertStorageKey("foo/prototype/bar")).toThrow(
+      ForgeValidationError,
+    );
     expect(() => assertStorageCollection("..")).toThrow(ForgeValidationError);
   });
 
@@ -111,36 +130,69 @@ describe("validatePluginConfig", () => {
   });
 
   it("rejects missing required fields and invalid types", () => {
-    expect(() => validatePluginConfig(configSchema, { port: 25 })).toThrow(ForgeConfigError);
+    expect(() => validatePluginConfig(configSchema, { port: 25 })).toThrow(
+      ForgeConfigError,
+    );
     expect(() =>
       validatePluginConfig(configSchema, { host: 1, api_token: "x" }),
     ).toThrow(ForgeConfigError);
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", port: "25" }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        port: "25",
+      }),
     ).toThrow(ForgeConfigError);
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", region: "ap" }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        region: "ap",
+      }),
     ).toThrow(ForgeConfigError);
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", flags: ["z"] }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        flags: ["z"],
+      }),
     ).toThrow(ForgeConfigError);
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", webhook: "not-a-url" }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        webhook: "not-a-url",
+      }),
     ).toThrow(ForgeConfigError);
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", contact: "not-an-email" }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        contact: "not-an-email",
+      }),
     ).toThrow(ForgeConfigError);
   });
 
   it("rejects prototype keys and unknown keys", () => {
     expect(() =>
-      validatePluginConfig(configSchema, JSON.parse('{"host":"h","api_token":"x","__proto__":{"a":1}}')),
+      validatePluginConfig(
+        configSchema,
+        JSON.parse('{"host":"h","api_token":"x","__proto__":{"a":1}}'),
+      ),
     ).toThrow();
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", constructor: "nope" }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        constructor: "nope",
+      }),
     ).toThrow();
     expect(() =>
-      validatePluginConfig(configSchema, { host: "h", api_token: "x", extra: true }),
+      validatePluginConfig(configSchema, {
+        host: "h",
+        api_token: "x",
+        extra: true,
+      }),
     ).toThrow(ForgeConfigError);
   });
 });
@@ -193,8 +245,12 @@ describe("memory plugin persist", () => {
     await persist.setKv("acme.mail", "state/item", { ok: true });
     await persist.setKv("acme.dns", "state/item", { ok: false });
 
-    expect(await persist.getKv("acme.mail", "state/item")).toEqual({ ok: true });
-    expect(await persist.getKv("acme.dns", "state/item")).toEqual({ ok: false });
+    expect(await persist.getKv("acme.mail", "state/item")).toEqual({
+      ok: true,
+    });
+    expect(await persist.getKv("acme.dns", "state/item")).toEqual({
+      ok: false,
+    });
     expect(await persist.listKvKeys("acme.mail")).toEqual(["state/item"]);
 
     const mailStorage = createPluginStorage(persist, "acme.mail");
@@ -216,9 +272,9 @@ describe("memory plugin persist", () => {
     await expect(persist.setKv("acme.mail", "../x", 1)).rejects.toBeInstanceOf(
       ForgeValidationError,
     );
-    await expect(persist.getKv("acme.mail", "foo/../bar")).rejects.toBeInstanceOf(
-      ForgeValidationError,
-    );
+    await expect(
+      persist.getKv("acme.mail", "foo/../bar"),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
   });
 
   it("round-trips sealed secrets and omits values from instance DTOs", async () => {
@@ -238,7 +294,9 @@ describe("memory plugin persist", () => {
       config: { host: "smtp.example.com" },
     });
     await persist.setSecret("acme.mail", "api_token", secret, instance.id);
-    expect(await persist.getSecret("acme.mail", "api_token", instance.id)).toBe(secret);
+    expect(await persist.getSecret("acme.mail", "api_token", instance.id)).toBe(
+      secret,
+    );
     const keysSet = await persist.listSecretKeysSet("acme.mail", instance.id);
     const dto = toPluginInstanceRecord(instance, keysSet);
     expect(dto.config.secretKeysSet).toEqual(["api_token"]);
@@ -255,7 +313,9 @@ describe("memory plugin persist", () => {
       manifest: mailManifest,
     });
     await persist.setSecret("acme.mail", "api_token", "dev-secret");
-    expect(await persist.getSecret("acme.mail", "api_token")).toBe("dev-secret");
+    expect(await persist.getSecret("acme.mail", "api_token")).toBe(
+      "dev-secret",
+    );
   });
 
   it("retains kv after uninstall until explicit purge", async () => {
@@ -298,10 +358,12 @@ describe("memory plugin persist", () => {
       displayName: "Primary",
       enabled: true,
     });
-    await expect(persist.assertCanUninstall("acme.mail")).rejects.toBeInstanceOf(
+    await expect(
+      persist.assertCanUninstall("acme.mail"),
+    ).rejects.toBeInstanceOf(ForgeConflictError);
+    await expect(persist.uninstall("acme.mail")).rejects.toBeInstanceOf(
       ForgeConflictError,
     );
-    await expect(persist.uninstall("acme.mail")).rejects.toBeInstanceOf(ForgeConflictError);
     await expect(persist.assertCanDisable("acme.mail")).rejects.toBeInstanceOf(
       ForgeConflictError,
     );
@@ -314,7 +376,9 @@ describe("memory plugin persist", () => {
     await persist.setInstanceEnabled(instance.id, false);
     await persist.assertCanDisable("acme.mail");
     await persist.setEnabled("acme.mail", false);
-    await expect(persist.uninstall("acme.mail")).rejects.toBeInstanceOf(ForgeConflictError);
+    await expect(persist.uninstall("acme.mail")).rejects.toBeInstanceOf(
+      ForgeConflictError,
+    );
 
     await persist.deleteInstance(instance.id);
     await persist.uninstall("acme.mail");

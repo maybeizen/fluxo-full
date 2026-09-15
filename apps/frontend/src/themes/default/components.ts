@@ -59,8 +59,16 @@ import { PasskeysCard } from "@/themes/default/pages/settings/passkeys-card";
 import { PasswordCard } from "@/themes/default/pages/settings/password-card";
 import { ProfileSection } from "@/themes/default/pages/settings/profile-section";
 import { SessionsSection } from "@/themes/default/pages/settings/sessions-section";
-import { Alert, AlertDescription, AlertTitle } from "@/themes/default/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/themes/default/components/ui/avatar";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/themes/default/components/ui/alert";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/themes/default/components/ui/avatar";
 import { Badge } from "@/themes/default/components/ui/badge";
 import { Button } from "@/themes/default/components/ui/button";
 import {
@@ -150,7 +158,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/themes/default/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/themes/default/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/themes/default/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,

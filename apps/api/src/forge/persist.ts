@@ -50,7 +50,8 @@ const emailSchema = z.string().email();
 type Db = FluxoDatabase["db"];
 type InstanceKind = "service" | "gateway";
 
-export type PluginPersistBlockCode = "instances_exist" | "enabled_instances_exist";
+export type PluginPersistBlockCode =
+  "instances_exist" | "enabled_instances_exist";
 
 export interface PluginPersistBlock {
   code: PluginPersistBlockCode;
@@ -123,14 +124,23 @@ export interface PluginPersist {
   upsertInstall(input: UpsertInstallInput): Promise<PluginInstallRow>;
   setEnabled(pluginId: string, enabled: boolean): Promise<PluginInstallRow>;
   recordFailure(pluginId: string, error: string): Promise<PluginInstallRow>;
-  uninstall(pluginId: string, options?: { purgeStorage?: boolean }): Promise<void>;
+  uninstall(
+    pluginId: string,
+    options?: { purgeStorage?: boolean },
+  ): Promise<void>;
   assertCanUninstall(pluginId: string): Promise<void>;
   assertCanDisable(pluginId: string): Promise<void>;
   listInstances(pluginId?: string): Promise<PluginInstanceRow[]>;
   getInstance(instanceId: string): Promise<PluginInstanceRow | undefined>;
   createInstance(input: CreateInstanceInput): Promise<PluginInstanceRow>;
-  updateInstance(instanceId: string, input: UpdateInstanceInput): Promise<PluginInstanceRow>;
-  setInstanceEnabled(instanceId: string, enabled: boolean): Promise<PluginInstanceRow>;
+  updateInstance(
+    instanceId: string,
+    input: UpdateInstanceInput,
+  ): Promise<PluginInstanceRow>;
+  setInstanceEnabled(
+    instanceId: string,
+    enabled: boolean,
+  ): Promise<PluginInstanceRow>;
   deleteInstance(instanceId: string): Promise<void>;
   countInstances(pluginId: string): Promise<number>;
   getKv(pluginId: string, key: string): Promise<JsonValue | undefined>;
@@ -138,14 +148,21 @@ export interface PluginPersist {
   deleteKv(pluginId: string, key: string): Promise<void>;
   listKvKeys(pluginId: string, prefix?: string): Promise<readonly string[]>;
   purgeKv(pluginId: string): Promise<void>;
-  getSecret(pluginId: string, key: string, instanceId?: string): Promise<string | null>;
+  getSecret(
+    pluginId: string,
+    key: string,
+    instanceId?: string,
+  ): Promise<string | null>;
   setSecret(
     pluginId: string,
     key: string,
     value: string | null,
     instanceId?: string,
   ): Promise<void>;
-  listSecretKeysSet(pluginId: string, instanceId?: string): Promise<readonly string[]>;
+  listSecretKeysSet(
+    pluginId: string,
+    instanceId?: string,
+  ): Promise<readonly string[]>;
   purgeSecrets(pluginId: string): Promise<void>;
 }
 
@@ -159,7 +176,12 @@ interface PersistAdapter {
   putInstance(row: PluginInstanceRow): Promise<void>;
   deleteInstance(id: string): Promise<void>;
   getKv(pluginId: string, key: string): Promise<JsonValue | undefined>;
-  putKv(pluginId: string, key: string, value: JsonValue, now: Date): Promise<void>;
+  putKv(
+    pluginId: string,
+    key: string,
+    value: JsonValue,
+    now: Date,
+  ): Promise<void>;
   deleteKv(pluginId: string, key: string): Promise<void>;
   listKvKeys(pluginId: string): Promise<string[]>;
   deleteKvByPlugin(pluginId: string): Promise<void>;
@@ -175,7 +197,11 @@ interface PersistAdapter {
     payload: unknown,
     now: Date,
   ): Promise<void>;
-  deleteSecret(pluginId: string, instanceId: string, key: string): Promise<void>;
+  deleteSecret(
+    pluginId: string,
+    instanceId: string,
+    key: string,
+  ): Promise<void>;
   listSecretKeys(pluginId: string, instanceId: string): Promise<string[]>;
   deleteSecretsByPlugin(pluginId: string): Promise<void>;
   deleteSecretsByInstance(pluginId: string, instanceId: string): Promise<void>;
@@ -362,7 +388,9 @@ export function createPluginStorage(
   };
 }
 
-export function createMemoryPluginPersist(options?: { appKey?: string }): PluginPersist {
+export function createMemoryPluginPersist(options?: {
+  appKey?: string;
+}): PluginPersist {
   return createHostPluginPersist(createMemoryAdapter(), options?.appKey ?? "");
 }
 
@@ -373,7 +401,10 @@ export function createPostgresPluginPersist(
   return createHostPluginPersist(createPostgresAdapter(db), options.appKey);
 }
 
-function createHostPluginPersist(adapter: PersistAdapter, appKey: string): PluginPersist {
+function createHostPluginPersist(
+  adapter: PersistAdapter,
+  appKey: string,
+): PluginPersist {
   return {
     listInstalls: () => adapter.listInstalls(),
     getInstall: (pluginId) => adapter.getInstall(parsePluginId(pluginId)),
@@ -397,7 +428,8 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
           input.status ??
           existing?.status ??
           (input.enabled === true ? "enabled" : "installed"),
-        error: input.error === undefined ? (existing?.error ?? null) : input.error,
+        error:
+          input.error === undefined ? (existing?.error ?? null) : input.error,
         discoveredPath:
           input.discoveredPath === undefined
             ? (existing?.discoveredPath ?? null)
@@ -417,7 +449,9 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
       const id = parsePluginId(pluginId);
       const existing = await requireInstall(adapter, id);
       if (!enabled) {
-        throwIfBlocked(describeDisableBlock(id, await adapter.listInstances(id)));
+        throwIfBlocked(
+          describeDisableBlock(id, await adapter.listInstances(id)),
+        );
       }
       const now = new Date();
       const row: PluginInstallRow = {
@@ -445,7 +479,9 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
     async uninstall(pluginId, options) {
       const id = parsePluginId(pluginId);
       await requireInstall(adapter, id);
-      throwIfBlocked(describeUninstallBlock(id, await adapter.listInstances(id)));
+      throwIfBlocked(
+        describeUninstallBlock(id, await adapter.listInstances(id)),
+      );
       await adapter.deleteInstall(id);
       if (options?.purgeStorage === true) {
         await adapter.deleteKvByPlugin(id);
@@ -455,7 +491,9 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
     async assertCanUninstall(pluginId) {
       const id = parsePluginId(pluginId);
       await requireInstall(adapter, id);
-      throwIfBlocked(describeUninstallBlock(id, await adapter.listInstances(id)));
+      throwIfBlocked(
+        describeUninstallBlock(id, await adapter.listInstances(id)),
+      );
     },
     async assertCanDisable(pluginId) {
       const id = parsePluginId(pluginId);
@@ -463,8 +501,11 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
       throwIfBlocked(describeDisableBlock(id, await adapter.listInstances(id)));
     },
     listInstances: (pluginId) =>
-      adapter.listInstances(pluginId === undefined ? undefined : parsePluginId(pluginId)),
-    getInstance: (instanceId) => adapter.getInstance(parseInstanceId(instanceId)),
+      adapter.listInstances(
+        pluginId === undefined ? undefined : parsePluginId(pluginId),
+      ),
+    getInstance: (instanceId) =>
+      adapter.getInstance(parseInstanceId(instanceId)),
     async createInstance(input) {
       const pluginId = parsePluginId(input.pluginId);
       const install = await requireInstall(adapter, pluginId);
@@ -479,7 +520,10 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
       const config = parseConfigRecord(input.config ?? {});
       const now = new Date();
       const row: PluginInstanceRow = {
-        id: input.id === undefined ? crypto.randomUUID() : parseInstanceId(input.id),
+        id:
+          input.id === undefined
+            ? crypto.randomUUID()
+            : parseInstanceId(input.id),
         pluginId,
         kind,
         displayName,
@@ -503,7 +547,9 @@ function createHostPluginPersist(adapter: PersistAdapter, appKey: string): Plugi
             : parseDisplayName(input.displayName),
         enabled: input.enabled ?? existing.enabled,
         config:
-          input.config === undefined ? existing.config : parseConfigRecord(input.config),
+          input.config === undefined
+            ? existing.config
+            : parseConfigRecord(input.config),
         updatedAt: now,
       };
       await adapter.putInstance(row);
@@ -857,7 +903,11 @@ function createPostgresAdapter(db: Db): PersistAdapter {
           updatedAt: now,
         })
         .onConflictDoUpdate({
-          target: [pluginSecrets.pluginId, pluginSecrets.instanceId, pluginSecrets.key],
+          target: [
+            pluginSecrets.pluginId,
+            pluginSecrets.instanceId,
+            pluginSecrets.key,
+          ],
           set: { payload, updatedAt: now },
         });
     },
@@ -885,7 +935,9 @@ function createPostgresAdapter(db: Db): PersistAdapter {
       return rows.map((row) => row.key);
     },
     async deleteSecretsByPlugin(pluginId) {
-      await db.delete(pluginSecrets).where(eq(pluginSecrets.pluginId, pluginId));
+      await db
+        .delete(pluginSecrets)
+        .where(eq(pluginSecrets.pluginId, pluginId));
     },
     async deleteSecretsByInstance(pluginId, instanceId) {
       await db
@@ -906,12 +958,18 @@ function resolveFieldValue(
   provided: boolean,
 ): JsonValue | undefined {
   if (!provided || raw === undefined) {
-    if (field.required === true && field.type !== "boolean" && !("default" in field)) {
+    if (
+      field.required === true &&
+      field.type !== "boolean" &&
+      !("default" in field)
+    ) {
       throw new ForgeConfigError(`Missing required config field: ${field.key}`);
     }
     if (field.type === "secret") {
       if (field.required === true) {
-        throw new ForgeConfigError(`Missing required config field: ${field.key}`);
+        throw new ForgeConfigError(
+          `Missing required config field: ${field.key}`,
+        );
       }
       return undefined;
     }
@@ -926,7 +984,9 @@ function resolveFieldValue(
   if (field.type === "secret") {
     if (typeof raw !== "string" || raw.length === 0) {
       if (field.required === true) {
-        throw new ForgeConfigError(`Missing required config field: ${field.key}`);
+        throw new ForgeConfigError(
+          `Missing required config field: ${field.key}`,
+        );
       }
       return undefined;
     }
@@ -938,19 +998,33 @@ function resolveFieldValue(
 function validateTypedValue(field: PluginConfigField, raw: unknown): JsonValue {
   switch (field.type) {
     case "text":
-      return validateText(field.key, raw, field.minLength, field.maxLength ?? TEXT_MAX_LENGTH);
+      return validateText(
+        field.key,
+        raw,
+        field.minLength,
+        field.maxLength ?? TEXT_MAX_LENGTH,
+      );
     case "textarea":
-      return validateText(field.key, raw, undefined, field.maxLength ?? TEXTAREA_MAX_LENGTH);
+      return validateText(
+        field.key,
+        raw,
+        undefined,
+        field.maxLength ?? TEXTAREA_MAX_LENGTH,
+      );
     case "number":
       return validateNumber(field, raw);
     case "boolean":
       if (raw !== true && raw !== false) {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected boolean`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected boolean`,
+        );
       }
       return raw;
     case "url": {
       if (typeof raw !== "string") {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected url`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected url`,
+        );
       }
       const parsed = urlSchema.safeParse(raw);
       if (!parsed.success) {
@@ -960,7 +1034,9 @@ function validateTypedValue(field: PluginConfigField, raw: unknown): JsonValue {
     }
     case "email": {
       if (typeof raw !== "string") {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected email`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected email`,
+        );
       }
       const parsed = emailSchema.safeParse(raw);
       if (!parsed.success) {
@@ -970,7 +1046,9 @@ function validateTypedValue(field: PluginConfigField, raw: unknown): JsonValue {
     }
     case "select": {
       if (typeof raw !== "string") {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected string`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected string`,
+        );
       }
       if (!field.options.some((option) => option.value === raw)) {
         throw new ForgeConfigError(`Invalid option for ${field.key}`);
@@ -979,7 +1057,9 @@ function validateTypedValue(field: PluginConfigField, raw: unknown): JsonValue {
     }
     case "multiselect": {
       if (!Array.isArray(raw) || raw.some((item) => typeof item !== "string")) {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected string[]`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected string[]`,
+        );
       }
       const values = raw as string[];
       const allowed = new Set(field.options.map((option) => option.value));
@@ -997,7 +1077,9 @@ function validateTypedValue(field: PluginConfigField, raw: unknown): JsonValue {
     }
     case "secret":
       if (typeof raw !== "string") {
-        throw new ForgeConfigError(`Invalid type for ${field.key}: expected secret`);
+        throw new ForgeConfigError(
+          `Invalid type for ${field.key}: expected secret`,
+        );
       }
       return raw;
     default:
@@ -1023,12 +1105,19 @@ function validateText(
   return raw;
 }
 
-function validateNumber(field: Extract<PluginConfigField, { type: "number" }>, raw: unknown): number {
+function validateNumber(
+  field: Extract<PluginConfigField, { type: "number" }>,
+  raw: unknown,
+): number {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
-    throw new ForgeConfigError(`Invalid type for ${field.key}: expected number`);
+    throw new ForgeConfigError(
+      `Invalid type for ${field.key}: expected number`,
+    );
   }
   if (field.integer === true && !Number.isInteger(raw)) {
-    throw new ForgeConfigError(`Invalid number for ${field.key}: expected integer`);
+    throw new ForgeConfigError(
+      `Invalid number for ${field.key}: expected integer`,
+    );
   }
   if (field.min !== undefined && raw < field.min) {
     throw new ForgeConfigError(`Invalid number for ${field.key}`);
@@ -1048,7 +1137,9 @@ function parseJsonValue(value: unknown): JsonValue {
   return parsed.data;
 }
 
-function parseConfigRecord(value: Record<string, JsonValue>): Record<string, JsonValue> {
+function parseConfigRecord(
+  value: Record<string, JsonValue>,
+): Record<string, JsonValue> {
   assertNoPrototypePollution(value);
   const result: Record<string, JsonValue> = {};
   for (const [key, entry] of Object.entries(value)) {
@@ -1114,18 +1205,27 @@ function readManifestMeta(
   author?: string;
   permissions: PluginPermission[];
 } {
-  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
     return { name: install.id, forgeApi: "", permissions: [] };
   }
   const record = manifest as Record<string, unknown>;
-  const name = typeof record.name === "string" && record.name.length > 0 ? record.name : install.id;
+  const name =
+    typeof record.name === "string" && record.name.length > 0
+      ? record.name
+      : install.id;
   const forgeApi = typeof record.forgeApi === "string" ? record.forgeApi : "";
   const description =
     typeof record.description === "string" && record.description.length > 0
       ? record.description
       : undefined;
   const author =
-    typeof record.author === "string" && record.author.length > 0 ? record.author : undefined;
+    typeof record.author === "string" && record.author.length > 0
+      ? record.author
+      : undefined;
   const permissions: PluginPermission[] = [];
   if (Array.isArray(record.permissions)) {
     for (const item of record.permissions) {
@@ -1137,7 +1237,9 @@ function readManifestMeta(
   return { name, forgeApi, description, author, permissions };
 }
 
-function mapInstallRow(row: typeof pluginInstalls.$inferSelect): PluginInstallRow {
+function mapInstallRow(
+  row: typeof pluginInstalls.$inferSelect,
+): PluginInstallRow {
   return {
     id: row.id,
     type: row.type,
@@ -1153,7 +1255,9 @@ function mapInstallRow(row: typeof pluginInstalls.$inferSelect): PluginInstallRo
   };
 }
 
-function mapInstanceRow(row: typeof pluginInstances.$inferSelect): PluginInstanceRow {
+function mapInstanceRow(
+  row: typeof pluginInstances.$inferSelect,
+): PluginInstanceRow {
   return {
     id: row.id,
     pluginId: row.pluginId,

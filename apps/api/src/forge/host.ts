@@ -71,9 +71,7 @@ export function installStateFromRow(
 
 export function createInstallStateAdapter(
   persist: PluginPersist,
-  resolveManifest?: (
-    pluginId: PluginId,
-  ) =>
+  resolveManifest?: (pluginId: PluginId) =>
     | {
         type: PluginInstallRow["type"];
         version: string;
@@ -82,7 +80,10 @@ export function createInstallStateAdapter(
     | undefined,
 ): {
   getInstallState: (pluginId: PluginId) => Promise<PluginInstallState>;
-  setInstallState: (pluginId: PluginId, state: PluginInstallState) => Promise<void>;
+  setInstallState: (
+    pluginId: PluginId,
+    state: PluginInstallState,
+  ) => Promise<void>;
 } {
   return {
     async getInstallState(pluginId) {
@@ -141,9 +142,17 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
 
   const holder: { manager?: PluginManager } = {};
 
-  const createContext: HostContextFactory = async (pluginId, instanceId, extras) => {
+  const createContext: HostContextFactory = async (
+    pluginId,
+    instanceId,
+    extras,
+  ) => {
     const id = parsePluginId(pluginId);
-    const meta = await resolvePluginMeta(options.persist, () => holder.manager, id);
+    const meta = await resolvePluginMeta(
+      options.persist,
+      () => holder.manager,
+      id,
+    );
     return createPluginContext({
       pluginId: id,
       pluginVersion: extras?.pluginVersion ?? meta.version,
@@ -161,17 +170,22 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
     });
   };
 
-  const installState = createInstallStateAdapter(options.persist, (pluginId) => {
-    const definition = holder.manager?.list().find((item) => item.id === pluginId);
-    if (!definition) {
-      return undefined;
-    }
-    return {
-      type: definition.type,
-      version: definition.manifest.version,
-      manifest: definition.manifest,
-    };
-  });
+  const installState = createInstallStateAdapter(
+    options.persist,
+    (pluginId) => {
+      const definition = holder.manager
+        ?.list()
+        .find((item) => item.id === pluginId);
+      if (!definition) {
+        return undefined;
+      }
+      return {
+        type: definition.type,
+        version: definition.manifest.version,
+        manifest: definition.manifest,
+      };
+    },
+  );
 
   const manager = createPluginManager({
     directory: options.pluginsDir,
@@ -182,7 +196,8 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
   });
   holder.manager = manager;
 
-  const isPluginActive = (pluginId: string) => manager.getActive(pluginId) !== undefined;
+  const isPluginActive = (pluginId: string) =>
+    manager.getActive(pluginId) !== undefined;
 
   const services = createServiceRegistry({
     persist: options.persist,
@@ -190,7 +205,8 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
       return asServicePlugin(manager.getActive(pluginId));
     },
     isPluginActive,
-    createContext: (pluginId, instanceId) => createContext(pluginId, instanceId),
+    createContext: (pluginId, instanceId) =>
+      createContext(pluginId, instanceId),
   });
 
   const gateways = createGatewayRegistry({
@@ -199,7 +215,8 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
       return asGatewayPlugin(manager.getActive(pluginId));
     },
     isPluginActive,
-    createContext: (pluginId, instanceId) => createContext(pluginId, instanceId),
+    createContext: (pluginId, instanceId) =>
+      createContext(pluginId, instanceId),
   });
 
   return {
@@ -213,7 +230,9 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
   };
 }
 
-function asServicePlugin(plugin: FluxoPlugin | undefined): FluxoServicePlugin | undefined {
+function asServicePlugin(
+  plugin: FluxoPlugin | undefined,
+): FluxoServicePlugin | undefined {
   if (
     plugin &&
     typeof (plugin as FluxoServicePlugin).provision === "function" &&
@@ -249,7 +268,9 @@ async function resolvePluginMeta(
       permissions: permissionsFromManifest(install.manifest),
     };
   }
-  const definition = getManager()?.list().find((item) => item.id === pluginId);
+  const definition = getManager()
+    ?.list()
+    .find((item) => item.id === pluginId);
   if (definition) {
     return {
       version: definition.manifest.version,

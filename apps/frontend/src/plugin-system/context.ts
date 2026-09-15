@@ -40,7 +40,10 @@ export function usePanelHostContext(): {
 } {
   const session = useSession();
   const settings = usePublicSettings();
-  const user = session.data?.status === "authenticated" ? toPluginUserView(session.data.user) : null;
+  const user =
+    session.data?.status === "authenticated"
+      ? toPluginUserView(session.data.user)
+      : null;
   return {
     user,
     settings: toPluginPublicSettings(settings),

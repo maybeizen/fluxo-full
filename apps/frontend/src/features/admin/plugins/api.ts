@@ -32,8 +32,18 @@ export function adminPluginInstancesQueryKey(id: string) {
   return ["admin", "plugins", id, "instances"] as const;
 }
 
-export function adminPluginInstanceConfigQueryKey(pluginId: string, instanceId: string) {
-  return ["admin", "plugins", pluginId, "instances", instanceId, "config"] as const;
+export function adminPluginInstanceConfigQueryKey(
+  pluginId: string,
+  instanceId: string,
+) {
+  return [
+    "admin",
+    "plugins",
+    pluginId,
+    "instances",
+    instanceId,
+    "config",
+  ] as const;
 }
 
 function pluginRoot(id: string): string {
@@ -48,7 +58,11 @@ async function readJson(response: Response): Promise<unknown> {
   return JSON.parse(text) as unknown;
 }
 
-function errorFromBody(body: unknown, status: number, fallback: string): AuthApiError {
+function errorFromBody(
+  body: unknown,
+  status: number,
+  fallback: string,
+): AuthApiError {
   const parsed = authErrorBodySchema.safeParse(body);
   if (!parsed.success) {
     return new AuthApiError(fallback, status);
@@ -107,8 +121,12 @@ export async function getAdminPlugin(id: string): Promise<AdminPluginDetail> {
   );
 }
 
-export async function enableAdminPlugin(id: string): Promise<AdminPluginDetail> {
-  const response = await adminFetch(`${pluginRoot(id)}/enable`, { method: "POST" });
+export async function enableAdminPlugin(
+  id: string,
+): Promise<AdminPluginDetail> {
+  const response = await adminFetch(`${pluginRoot(id)}/enable`, {
+    method: "POST",
+  });
   return parseSuccess(
     response,
     (body) => adminPluginDetailSchema.parse(body),
@@ -116,8 +134,12 @@ export async function enableAdminPlugin(id: string): Promise<AdminPluginDetail> 
   );
 }
 
-export async function disableAdminPlugin(id: string): Promise<AdminPluginDetail> {
-  const response = await adminFetch(`${pluginRoot(id)}/disable`, { method: "POST" });
+export async function disableAdminPlugin(
+  id: string,
+): Promise<AdminPluginDetail> {
+  const response = await adminFetch(`${pluginRoot(id)}/disable`, {
+    method: "POST",
+  });
   return parseSuccess(
     response,
     (body) => adminPluginDetailSchema.parse(body),
@@ -130,11 +152,19 @@ export async function uninstallAdminPlugin(
   options?: { purgeStorage?: boolean },
 ): Promise<void> {
   const query = options?.purgeStorage === true ? "?purgeStorage=true" : "";
-  const response = await adminFetch(`${pluginRoot(id)}${query}`, { method: "DELETE" });
-  await parseSuccess(response, (body) => adminOkSchema.parse(body), "Unable to uninstall this plugin.");
+  const response = await adminFetch(`${pluginRoot(id)}${query}`, {
+    method: "DELETE",
+  });
+  await parseSuccess(
+    response,
+    (body) => adminOkSchema.parse(body),
+    "Unable to uninstall this plugin.",
+  );
 }
 
-export async function getAdminPluginConfig(id: string): Promise<AdminPluginConfigView> {
+export async function getAdminPluginConfig(
+  id: string,
+): Promise<AdminPluginConfigView> {
   const response = await adminFetch(`${pluginRoot(id)}/config`);
   return parseSuccess(
     response,
@@ -158,8 +188,12 @@ export async function putAdminPluginConfig(
   );
 }
 
-export async function checkAdminPluginHealth(id: string): Promise<PluginHealthSnapshot> {
-  const response = await adminFetch(`${pluginRoot(id)}/health`, { method: "POST" });
+export async function checkAdminPluginHealth(
+  id: string,
+): Promise<PluginHealthSnapshot> {
+  const response = await adminFetch(`${pluginRoot(id)}/health`, {
+    method: "POST",
+  });
   return parseSuccess(
     response,
     (body) => adminPluginHealthSchema.parse(body),
@@ -167,7 +201,9 @@ export async function checkAdminPluginHealth(id: string): Promise<PluginHealthSn
   );
 }
 
-export async function listAdminPluginInstances(id: string): Promise<PluginInstanceRecord[]> {
+export async function listAdminPluginInstances(
+  id: string,
+): Promise<PluginInstanceRecord[]> {
   const response = await adminFetch(`${pluginRoot(id)}/instances`);
   const parsed = await parseSuccess(
     response,
@@ -217,7 +253,11 @@ export async function deleteAdminPluginInstance(
     `${pluginRoot(pluginId)}/instances/${encodeURIComponent(instanceId)}`,
     { method: "DELETE" },
   );
-  await parseSuccess(response, (body) => adminOkSchema.parse(body), "Unable to delete this instance.");
+  await parseSuccess(
+    response,
+    (body) => adminOkSchema.parse(body),
+    "Unable to delete this instance.",
+  );
 }
 
 export async function getAdminPluginInstanceConfig(

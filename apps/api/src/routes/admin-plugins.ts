@@ -68,7 +68,9 @@ function instanceParam(value: string): string {
   return parseInstanceId(value);
 }
 
-function handleForgeError(error: unknown): { body: { error: string; code: string }; status: number } | null {
+function handleForgeError(
+  error: unknown,
+): { body: { error: string; code: string }; status: number } | null {
   if (error instanceof ForgeError) {
     return { body: forgeErrorBody(error), status: error.status };
   }
@@ -124,7 +126,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
 
   routes.post("/plugins/:pluginId/disable", async (c) => {
     try {
-      return c.json(await service.disable(pluginParam(c.req.param("pluginId"))));
+      return c.json(
+        await service.disable(pluginParam(c.req.param("pluginId"))),
+      );
     } catch (error) {
       const mapped = handleForgeError(error);
       if (mapped) {
@@ -143,7 +147,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
       (query.success && query.data.purgeStorage) ||
       (body.success && body.data.purgeStorage === true);
     try {
-      await service.uninstall(pluginParam(c.req.param("pluginId")), { purgeStorage });
+      await service.uninstall(pluginParam(c.req.param("pluginId")), {
+        purgeStorage,
+      });
       return c.json({ ok: true });
     } catch (error) {
       const mapped = handleForgeError(error);
@@ -156,7 +162,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
 
   routes.get("/plugins/:pluginId/config", async (c) => {
     try {
-      return c.json(await service.getConfig(pluginParam(c.req.param("pluginId"))));
+      return c.json(
+        await service.getConfig(pluginParam(c.req.param("pluginId"))),
+      );
     } catch (error) {
       const mapped = handleForgeError(error);
       if (mapped) {
@@ -172,7 +180,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
       return c.json({ error: "Invalid request" }, 400);
     }
     try {
-      return c.json(await service.putConfig(pluginParam(c.req.param("pluginId")), body));
+      return c.json(
+        await service.putConfig(pluginParam(c.req.param("pluginId")), body),
+      );
     } catch (error) {
       const mapped = handleForgeError(error);
       if (mapped) {
@@ -184,7 +194,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
 
   routes.post("/plugins/:pluginId/health", async (c) => {
     try {
-      return c.json(await service.checkHealth(pluginParam(c.req.param("pluginId"))));
+      return c.json(
+        await service.checkHealth(pluginParam(c.req.param("pluginId"))),
+      );
     } catch (error) {
       const mapped = handleForgeError(error);
       if (mapped) {
@@ -197,7 +209,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
   routes.get("/plugins/:pluginId/instances", async (c) => {
     try {
       return c.json({
-        instances: await service.listInstances(pluginParam(c.req.param("pluginId"))),
+        instances: await service.listInstances(
+          pluginParam(c.req.param("pluginId")),
+        ),
       });
     } catch (error) {
       const mapped = handleForgeError(error);
@@ -209,16 +223,21 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
   });
 
   routes.post("/plugins/:pluginId/instances", async (c) => {
-    const parsed = createInstanceBodySchema.safeParse(await readJson(c.req.raw));
+    const parsed = createInstanceBodySchema.safeParse(
+      await readJson(c.req.raw),
+    );
     if (!parsed.success) {
       return c.json({ error: "Invalid request" }, 400);
     }
     try {
-      const instance = await service.createInstance(pluginParam(c.req.param("pluginId")), {
-        displayName: parsed.data.displayName,
-        enabled: parsed.data.enabled,
-        config: parsed.data.config as Record<string, JsonValue> | undefined,
-      });
+      const instance = await service.createInstance(
+        pluginParam(c.req.param("pluginId")),
+        {
+          displayName: parsed.data.displayName,
+          enabled: parsed.data.enabled,
+          config: parsed.data.config as Record<string, JsonValue> | undefined,
+        },
+      );
       return c.json(instance, 201);
     } catch (error) {
       const mapped = handleForgeError(error);
@@ -247,7 +266,9 @@ export function adminPluginRoutes(options: AdminPluginRouteOptions) {
   });
 
   routes.patch("/plugins/:pluginId/instances/:instanceId", async (c) => {
-    const parsed = updateInstanceBodySchema.safeParse(await readJson(c.req.raw));
+    const parsed = updateInstanceBodySchema.safeParse(
+      await readJson(c.req.raw),
+    );
     if (!parsed.success) {
       return c.json({ error: "Invalid request" }, 400);
     }

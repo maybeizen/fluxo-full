@@ -28,7 +28,9 @@ export function AppSidebar({ items, extraNav, accountMenu }: AppSidebarProps) {
     SidebarTrigger,
     Skeleton,
   } = useUI();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
   const user = accountMenu.user;
 
   return (
@@ -64,7 +66,9 @@ export function AppSidebar({ items, extraNav, accountMenu }: AppSidebarProps) {
                       )}
                     >
                       <Icon />
-                      <span className="group-data-[collapsible=icon]:sr-only">{item.label}</span>
+                      <span className="group-data-[collapsible=icon]:sr-only">
+                        {item.label}
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

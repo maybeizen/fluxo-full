@@ -1,8 +1,4 @@
-import type {
-  PluginContext,
-  PluginId,
-  PluginLogger,
-} from "@fluxo/forge";
+import type { PluginContext, PluginId, PluginLogger } from "@fluxo/forge";
 
 export function createFakeLogger(): PluginLogger {
   const logger: PluginLogger = {

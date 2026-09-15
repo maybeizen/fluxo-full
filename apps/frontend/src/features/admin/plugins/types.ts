@@ -50,4 +50,9 @@ export interface AdminPluginInstancesResponse {
 
 export type PluginSecretDraft = { value: string; clear: boolean };
 
-export type { JsonValue, PluginConfigField, PluginHealthSnapshot, PluginInstanceRecord };
+export type {
+  JsonValue,
+  PluginConfigField,
+  PluginHealthSnapshot,
+  PluginInstanceRecord,
+};
