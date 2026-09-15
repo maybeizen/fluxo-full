@@ -194,7 +194,7 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
   >();
   private sequence = 0;
 
-  webhookHandlers(): readonly string[] {
+  override webhookHandlers(): readonly string[] {
     return ["notify"];
   }
 
