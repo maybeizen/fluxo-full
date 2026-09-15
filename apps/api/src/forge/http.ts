@@ -10,7 +10,6 @@ import {
   type JsonValue,
   type PluginHttp,
   type PluginHttpMethod,
-  type PluginHttpRequest,
   type PluginHttpResponse,
   type PluginLogger,
   type PluginPermission,

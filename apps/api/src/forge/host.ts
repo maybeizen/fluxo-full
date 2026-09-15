@@ -126,11 +126,11 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
     },
   });
 
-  let manager!: PluginManager;
+  const holder: { manager?: PluginManager } = {};
 
   const createContext: HostContextFactory = async (pluginId, instanceId, extras) => {
     const id = parsePluginId(pluginId);
-    const meta = await resolvePluginMeta(options.persist, () => manager, id);
+    const meta = await resolvePluginMeta(options.persist, () => holder.manager, id);
     return createPluginContext({
       pluginId: id,
       pluginVersion: extras?.pluginVersion ?? meta.version,
@@ -149,7 +149,7 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
   };
 
   const installState = createInstallStateAdapter(options.persist, (pluginId) => {
-    const definition = manager?.list().find((item) => item.id === pluginId);
+    const definition = holder.manager?.list().find((item) => item.id === pluginId);
     if (!definition) {
       return undefined;
     }
@@ -160,13 +160,14 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
     };
   });
 
-  manager = createPluginManager({
+  const manager = createPluginManager({
     directory: options.pluginsDir,
     logger: options.logger,
     createContext: (pluginId) => createContext(pluginId),
     getInstallState: installState.getInstallState,
     setInstallState: installState.setInstallState,
   });
+  holder.manager = manager;
 
   return {
     persist: options.persist,
