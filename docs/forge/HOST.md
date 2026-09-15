@@ -27,7 +27,7 @@ const ctx = await host.createContext(pluginId, instanceId);
 | `gateways`                             | Group E `FluxoGatewayRegistry` (`resolve`, checkout, refund, `handleWebhook`)                                  |
 | `createContext(pluginId, instanceId?)` | Builds `PluginContext` with the trusted plugin id                                                              |
 | `events`                               | Host event bus. Plugins subscribe through `ctx.events`. Host code emits with `emitForgeEvent` from `events.ts` |
-| `jobs`                                 | In-process scheduler. Plugins use `ctx.jobs.schedule` / `cancel` / `handle`                                    |
+| `jobs`                                 | In-process scheduler. Public `PluginJobs` is `schedule` / `cancel` only. Handler registration (`handle`) lives on the host adapter (`HostPluginJobs` in `jobs.ts`) and is **not** exported from `@fluxo/forge`. |
 
 Jobs are **in-process timers**, not a shared queue. They are not HA-safe and not persisted: a restart drops them, and each API process keeps its own timers (duplicate fires if you run more than one replica). Plugins must re-schedule work in `onStart`. Do not treat `ctx.jobs` as a durable or clustered worker.
 
