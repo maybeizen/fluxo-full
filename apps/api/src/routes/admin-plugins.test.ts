@@ -396,6 +396,104 @@ describe("admin plugins api", () => {
     expect(listBody.instances[0]?.config.secretKeysSet).toEqual(["api_token"]);
   });
 
+  it("does not store or return secrets when creating an instance with config", async () => {
+    const { app, persist, cookie } = await signedInAdmin();
+    await seedMail(persist);
+
+    const created = await app.request("/admin/plugins/acme.mail/instances", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        displayName: "Primary",
+        enabled: true,
+        config: { host: "smtp.example.com", api_token: SECRET },
+      }),
+    });
+    expect(created.status).toBe(201);
+    const createdBody = (await created.json()) as {
+      id: string;
+      config: { values: Record<string, unknown>; secretKeysSet: string[] };
+    };
+    expect(createdBody.config.values).toEqual({
+      host: "smtp.example.com",
+      port: 25,
+      secure: false,
+    });
+    expect(createdBody.config.secretKeysSet).toEqual(["api_token"]);
+    expect(JSON.stringify(createdBody)).not.toContain(SECRET);
+
+    const fetched = await app.request(
+      `/admin/plugins/acme.mail/instances/${createdBody.id}`,
+      { headers: { cookie } },
+    );
+    expect(fetched.status).toBe(200);
+    const fetchedBody = (await fetched.json()) as {
+      config: { values: Record<string, unknown>; secretKeysSet: string[] };
+    };
+    expect(fetchedBody.config.secretKeysSet).toEqual(["api_token"]);
+    expect(JSON.stringify(fetchedBody)).not.toContain(SECRET);
+
+    const stored = await persist.getInstance(createdBody.id);
+    expect(stored?.config).toEqual({
+      host: "smtp.example.com",
+      port: 25,
+      secure: false,
+    });
+    expect(JSON.stringify(stored?.config)).not.toContain(SECRET);
+    expect(await persist.getSecret("acme.mail", "api_token", createdBody.id)).toBe(
+      SECRET,
+    );
+  });
+
+  it("exposes the intersection of disk and install permissions", async () => {
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: "acme.mail",
+      type: "service",
+      version: "1.0.0",
+      manifest: {
+        ...mailManifest,
+        permissions: ["storage.read", "storage.write", "http.outbound"],
+      },
+      enabled: true,
+      status: "enabled",
+    });
+    const definition: PluginDefinition = {
+      id: "acme.mail",
+      type: "service",
+      manifest: {
+        ...mailManifest,
+        permissions: ["storage.read"],
+      },
+      status: "started",
+    };
+    const manager = createFakeManager({ definitions: [definition] });
+    const auth = createMemoryAuth();
+    const logger = mockLogger();
+    const app = new Hono();
+    app.onError(errorHandler(logger));
+    app.route("/auth", authRoutes({ ...auth, logger }));
+    app.route(
+      "/admin",
+      adminPluginRoutes({
+        sessions: auth.sessions,
+        users: auth.users,
+        passkeys: auth.passkeys,
+        persist,
+        manager,
+      }),
+    );
+    await register(app);
+    const cookie = sessionCookie(await login(app));
+
+    const response = await app.request("/admin/plugins/acme.mail", {
+      headers: { cookie },
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { permissions: string[] };
+    expect(body.permissions).toEqual(["storage.read"]);
+  });
+
   it("uninstalls without purging storage by default", async () => {
     const { app, persist, cookie } = await signedInAdmin();
     await seedMail(persist);

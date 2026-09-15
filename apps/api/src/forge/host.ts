@@ -15,7 +15,12 @@ import {
 } from "@fluxo/plugin-manager";
 import type { UserStore } from "../auth/stores/types.js";
 import type { SettingsRuntime } from "../settings/runtime.js";
-import { createPluginContext, permissionsFromManifest } from "./context.js";
+import {
+  applyManifestPermissions,
+  createPluginContext,
+  intersectPluginPermissions,
+  permissionsFromManifest,
+} from "./context.js";
 import { createForgeEventBus, type ForgeEventBus } from "./events.js";
 import {
   createGatewayRegistry,
@@ -187,13 +192,25 @@ export function createForgeHost(options: CreateForgeHostOptions): ForgeHost {
     },
   );
 
-  const manager = createPluginManager({
+  const loaded = createPluginManager({
     directory: options.pluginsDir,
     logger: options.logger,
     createContext: (pluginId) => createContext(pluginId),
     getInstallState: installState.getInstallState,
     setInstallState: installState.setInstallState,
   });
+  const manager: PluginManager = {
+    ...loaded,
+    async loadAll() {
+      const results = await loaded.loadAll();
+      await syncInstallManifests(options.persist, loaded);
+      return results;
+    },
+    async refresh(id) {
+      await loaded.refresh(id);
+      await syncInstallManifests(options.persist, loaded, id);
+    },
+  };
   holder.manager = manager;
 
   const isPluginActive = (pluginId: string) =>
@@ -262,20 +279,59 @@ async function resolvePluginMeta(
   pluginId: PluginId,
 ): Promise<{ version: string; permissions: PluginPermission[] }> {
   const install = await persist.getInstall(pluginId);
-  if (install !== undefined) {
-    return {
-      version: install.version,
-      permissions: permissionsFromManifest(install.manifest),
-    };
-  }
   const definition = getManager()
     ?.list()
     .find((item) => item.id === pluginId);
-  if (definition) {
-    return {
+  const installPermissions = install
+    ? permissionsFromManifest(install.manifest)
+    : [];
+  const diskPermissions = definition
+    ? permissionsFromManifest(definition.manifest)
+    : undefined;
+  const permissions =
+    diskPermissions === undefined
+      ? installPermissions
+      : install === undefined
+        ? diskPermissions
+        : intersectPluginPermissions(diskPermissions, installPermissions);
+  return {
+    version: definition?.manifest.version ?? install?.version ?? "0.0.0",
+    permissions,
+  };
+}
+
+async function syncInstallManifests(
+  persist: PluginPersist,
+  manager: PluginManager,
+  pluginId?: PluginId,
+): Promise<void> {
+  const definitions =
+    pluginId === undefined
+      ? manager.list()
+      : manager.list().filter((item) => item.id === pluginId);
+  for (const definition of definitions) {
+    const install = await persist.getInstall(definition.id);
+    if (install === undefined) {
+      continue;
+    }
+    const permissions = intersectPluginPermissions(
+      permissionsFromManifest(definition.manifest),
+      permissionsFromManifest(install.manifest),
+    );
+    const manifest = applyManifestPermissions(
+      definition.manifest,
+      permissions,
+    );
+    await persist.upsertInstall({
+      id: install.id,
+      type: definition.type,
       version: definition.manifest.version,
-      permissions: definition.manifest.permissions ?? [],
-    };
+      manifest,
+      enabled: install.enabled,
+      status: install.status,
+      error: install.error,
+      discoveredPath: install.discoveredPath,
+      contentHash: install.contentHash,
+    });
   }
-  return { version: "0.0.0", permissions: [] };
 }

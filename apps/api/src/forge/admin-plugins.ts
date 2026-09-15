@@ -21,6 +21,11 @@ import {
   jsonValueSchema,
 } from "@fluxo/forge";
 import {
+  applyManifestPermissions,
+  intersectPluginPermissions,
+  permissionsFromManifest,
+} from "./context.js";
+import {
   toPluginConfigPublic,
   toPluginDefinitionRecord,
   toPluginInstanceRecord,
@@ -336,7 +341,7 @@ export function createAdminPluginService(
     },
 
     async createInstance(pluginId, input) {
-      const { id, view } = await requireView(pluginId);
+      const { id, view, install, definition } = await requireView(pluginId);
       if (view.type === "panel") {
         throw new ForgeConfigError("Panel plugins do not have instances");
       }
@@ -346,14 +351,23 @@ export function createAdminPluginService(
       if (!view.installed) {
         throw new ForgeConflictError(`Plugin is not installed: ${id}`);
       }
+      const schema = readConfigSchema(
+        definition?.manifest ?? install?.manifest,
+      );
+      const patched =
+        input.config === undefined
+          ? { values: {}, secretWrites: {} }
+          : applyPluginConfigPatch(schema, input.config, {}, []);
       const row = await persist.createInstance({
         pluginId: id,
         kind: view.type,
         displayName: input.displayName,
         enabled: input.enabled,
-        config: input.config,
+        config: patched.values,
       });
-      return instanceRecord(row);
+      await writeSecrets(persist, id, patched.secretWrites, row.id);
+      const stored = await persist.getInstance(row.id);
+      return instanceRecord(stored ?? row);
     },
 
     async updateInstance(pluginId, instanceId, input) {
@@ -632,13 +646,17 @@ function overlayInstall(
   if (!definition) {
     return install;
   }
+  const permissions = intersectPluginPermissions(
+    permissionsFromManifest(definition.manifest),
+    permissionsFromManifest(install.manifest),
+  );
   return {
     ...install,
     status: definition.status,
     error: definition.error === undefined ? install.error : definition.error,
     type: definition.type,
     version: definition.manifest.version,
-    manifest: definition.manifest,
+    manifest: applyManifestPermissions(definition.manifest, permissions),
   };
 }
 

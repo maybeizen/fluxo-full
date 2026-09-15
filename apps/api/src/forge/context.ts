@@ -251,3 +251,28 @@ function uniquePermissions(
 ): PluginPermission[] {
   return [...new Set(permissions)];
 }
+
+export function intersectPluginPermissions(
+  disk: readonly PluginPermission[],
+  installed: readonly PluginPermission[],
+): PluginPermission[] {
+  const allowed = new Set(disk);
+  return uniquePermissions(installed.filter((item) => allowed.has(item)));
+}
+
+export function applyManifestPermissions(
+  manifest: unknown,
+  permissions: readonly PluginPermission[],
+): unknown {
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
+    return { permissions: [...permissions] };
+  }
+  return {
+    ...(manifest as Record<string, unknown>),
+    permissions: [...permissions],
+  };
+}

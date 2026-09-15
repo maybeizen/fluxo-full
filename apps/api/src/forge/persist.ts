@@ -390,21 +390,36 @@ export function createPluginStorage(
 
 export function createMemoryPluginPersist(options?: {
   appKey?: string;
+  nodeEnv?: "development" | "test" | "production";
 }): PluginPersist {
-  return createHostPluginPersist(createMemoryAdapter(), options?.appKey ?? "");
+  return createHostPluginPersist(createMemoryAdapter(), {
+    appKey: options?.appKey ?? "",
+    nodeEnv: options?.nodeEnv,
+  });
 }
 
 export function createPostgresPluginPersist(
   db: Db,
-  options: { appKey: string },
+  options: {
+    appKey: string;
+    nodeEnv?: "development" | "test" | "production";
+  },
 ): PluginPersist {
-  return createHostPluginPersist(createPostgresAdapter(db), options.appKey);
+  return createHostPluginPersist(createPostgresAdapter(db), {
+    appKey: options.appKey,
+    nodeEnv: options.nodeEnv,
+  });
 }
 
 function createHostPluginPersist(
   adapter: PersistAdapter,
-  appKey: string,
+  options: {
+    appKey: string;
+    nodeEnv?: "development" | "test" | "production";
+  },
 ): PluginPersist {
+  const appKey = options.appKey;
+  const nodeEnv = options.nodeEnv ?? "development";
   return {
     listInstalls: () => adapter.listInstalls(),
     getInstall: (pluginId) => adapter.getInstall(parsePluginId(pluginId)),
@@ -517,7 +532,10 @@ function createHostPluginPersist(
         throw new ForgeValidationError("Instance kind must match plugin type");
       }
       const displayName = parseDisplayName(input.displayName);
-      const config = parseConfigRecord(input.config ?? {});
+      const config = omitSecretConfigValues(
+        install.manifest,
+        parseConfigRecord(input.config ?? {}),
+      );
       const now = new Date();
       const row: PluginInstanceRow = {
         id:
@@ -549,7 +567,10 @@ function createHostPluginPersist(
         config:
           input.config === undefined
             ? existing.config
-            : parseConfigRecord(input.config),
+            : omitSecretConfigValues(
+                (await adapter.getInstall(existing.pluginId))?.manifest,
+                parseConfigRecord(input.config),
+              ),
         updatedAt: now,
       };
       await adapter.putInstance(row);
@@ -624,6 +645,11 @@ function createHostPluginPersist(
       if (value === null) {
         await adapter.deleteSecret(id, scope, key);
         return;
+      }
+      if (appKey.length === 0 && nodeEnv === "production") {
+        throw new ForgeConfigError(
+          "APP_KEY is required to store plugin secrets in production",
+        );
       }
       const sealed = sealSecret(value, appKey);
       await adapter.putSecretPayload(id, scope, key, sealed, new Date());
@@ -1149,6 +1175,51 @@ function parseConfigRecord(
     result[key] = parseJsonValue(entry);
   }
   return result;
+}
+
+function secretKeysFromManifest(manifest: unknown): Set<string> {
+  const keys = new Set<string>();
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    Array.isArray(manifest)
+  ) {
+    return keys;
+  }
+  const config = (manifest as { config?: unknown }).config;
+  if (!Array.isArray(config)) {
+    return keys;
+  }
+  for (const item of config) {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      "key" in item &&
+      "type" in item &&
+      (item as { type: unknown }).type === "secret" &&
+      typeof (item as { key: unknown }).key === "string"
+    ) {
+      keys.add((item as { key: string }).key);
+    }
+  }
+  return keys;
+}
+
+function omitSecretConfigValues(
+  manifest: unknown,
+  config: Record<string, JsonValue>,
+): Record<string, JsonValue> {
+  const secretKeys = secretKeysFromManifest(manifest);
+  if (secretKeys.size === 0) {
+    return config;
+  }
+  const next: Record<string, JsonValue> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (!secretKeys.has(key)) {
+      next[key] = value;
+    }
+  }
+  return next;
 }
 
 function parseInstanceKind(value: string): InstanceKind {

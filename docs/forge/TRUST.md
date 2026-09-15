@@ -18,7 +18,8 @@ The loader is the security boundary that operators actually get:
 - Canonical plugin IDs (no traversal, no `__proto__`)
 - Manifest Zod parse + prototype-pollution key rejection
 - Fail-safe: invalid/broken plugins are skipped and marked `error`; they are not merged into live registries
-- Secrets encrypted with existing `APP_KEY` infrastructure; omitted from admin GET payloads
+- Secrets encrypted with existing `APP_KEY` infrastructure; omitted from admin GET payloads. Production refuses plugin secret writes if `APP_KEY` is empty.
+- Runtime permissions are the intersection of the disk `plugin.json` and the install-row snapshot (never grant a permission that is no longer on disk)
 - Outbound HTTP helper (`ctx.http`) enforces `PLUGIN_HTTP_ALLOWLIST` and redacts auth headers in logs
 
 ## Operator responsibility

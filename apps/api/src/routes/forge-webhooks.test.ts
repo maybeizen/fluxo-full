@@ -136,6 +136,8 @@ async function setup(options?: {
   logger?: FluxoLogger;
   install?: boolean;
   enabled?: boolean;
+  rateLimitMax?: number;
+  rateLimitWindowMs?: number;
 }) {
   const persist = createMemoryPluginPersist();
   if (options?.install !== false) {
@@ -181,6 +183,8 @@ async function setup(options?: {
       createContext: (pluginId, instanceId) =>
         fakeContext(pluginId, instanceId),
       logger,
+      rateLimitMax: options?.rateLimitMax,
+      rateLimitWindowMs: options?.rateLimitWindowMs,
     }),
   );
   return { app, persist, logger, plugin };
@@ -374,5 +378,28 @@ describe("forgeWebhookRoutes", () => {
     );
     expect(response.headers.get("x-request-id")).toEqual(expect.any(String));
     expect(response.headers.get("x-request-id")?.length).toBeGreaterThan(0);
+  });
+
+  it("does not treat X-Forwarded-For as distinct rate-limit buckets", async () => {
+    const { app } = await setup({ rateLimitMax: 3, rateLimitWindowMs: 60_000 });
+    const path = forgeWebhookPath(PAY_ID, INSTANCE_A, "notify");
+    for (let index = 0; index < 3; index += 1) {
+      const response = await app.request(path, {
+        method: "POST",
+        headers: { "x-forwarded-for": `203.0.113.${index}` },
+        body: "{}",
+      });
+      expect(response.status).toBe(200);
+    }
+    const blocked = await app.request(path, {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.9" },
+      body: "{}",
+    });
+    expect(blocked.status).toBe(429);
+    expect(await blocked.json()).toEqual({
+      error: "Too many webhook requests",
+      code: "forge_rate_limited",
+    });
   });
 });

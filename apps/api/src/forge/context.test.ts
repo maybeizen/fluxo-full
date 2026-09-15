@@ -7,7 +7,10 @@ import { UserRole } from "@fluxo/types";
 import { describe, expect, it } from "vitest";
 import { createMemoryUserStore } from "../auth/stores/memory.js";
 import { createMemorySettingsRuntime } from "../settings/runtime.js";
-import { createPluginContext } from "./context.js";
+import {
+  createPluginContext,
+  intersectPluginPermissions,
+} from "./context.js";
 import { createForgeEventBus } from "./events.js";
 import { createJobScheduler } from "./jobs.js";
 import { createMemoryPluginPersist, type PluginPersist } from "./persist.js";
@@ -74,6 +77,21 @@ describe("plugin context permissions", () => {
     await expect(ctx.settings.getPublic()).rejects.toBeInstanceOf(
       ForgePermissionError,
     );
+  });
+
+  it("intersects disk and install permissions without expanding", () => {
+    expect(
+      intersectPluginPermissions(
+        ["storage.read"],
+        ["storage.read", "storage.write", "http.outbound"],
+      ),
+    ).toEqual(["storage.read"]);
+    expect(
+      intersectPluginPermissions(
+        ["storage.read", "storage.write", "http.outbound"],
+        ["storage.read", "storage.write"],
+      ),
+    ).toEqual(["storage.read", "storage.write"]);
   });
 });
 

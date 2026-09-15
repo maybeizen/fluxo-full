@@ -18,6 +18,7 @@ export interface StartForgeOptions {
   persist?: PluginPersist;
   database?: FluxoDatabase;
   appKey?: string;
+  nodeEnv?: "development" | "test" | "production";
   httpAllowlist?: readonly string[];
   users?: Pick<UserStore, "findById">;
   settings?: Pick<SettingsRuntime, "current">;
@@ -99,6 +100,7 @@ function resolvePersist(options: StartForgeOptions): PluginPersist | undefined {
   try {
     return createPostgresPluginPersist(options.database.db, {
       appKey: options.appKey ?? "",
+      nodeEnv: options.nodeEnv,
     });
   } catch {
     return undefined;

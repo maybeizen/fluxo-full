@@ -101,10 +101,7 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
     "/:pluginId/:instanceId/:handler",
     async (c) => {
       const requestIdValue = c.get("requestId");
-      const ip = clientIp(
-        c.req.header("x-forwarded-for"),
-        c.req.header("x-real-ip"),
-      );
+      const ip = connectionIp(c);
       if (!limiter.allow(`${ip}:${c.req.path}`)) {
         return jsonForgeError(c, RATE_LIMITED, requestIdValue);
       }
@@ -384,18 +381,18 @@ function allowsWebhooks(manifest: unknown): boolean {
   );
 }
 
-function clientIp(
-  forwarded: string | undefined,
-  realIp: string | undefined,
-): string {
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) {
-      return first;
-    }
+function connectionIp(c: { env?: unknown }): string {
+  if (typeof c.env !== "object" || c.env === null || !("incoming" in c.env)) {
+    return "unknown";
   }
-  if (realIp && realIp.trim().length > 0) {
-    return realIp.trim();
+  const incoming = (
+    c.env as {
+      incoming?: { socket?: { remoteAddress?: string } };
+    }
+  ).incoming;
+  const address = incoming?.socket?.remoteAddress;
+  if (typeof address === "string" && address.trim().length > 0) {
+    return address.trim();
   }
   return "unknown";
 }

@@ -51,7 +51,7 @@ Allowed methods: `GET`, `POST`, `PUT`. Handler names must match `isSafeWebhookNa
 | Request id                       | Hono `requestId` middleware; `X-Request-Id` on the response; copied into plugin headers                  |
 | Logging                          | Method, path ids, handler, status, byte length, request id. **No raw body, no auth headers, no secrets** |
 | Errors                           | Plugin throw → 500 `{ error, code }` Forge body, no stack                                                |
-| Rate limit                       | In-process sliding window per IP+path (`FORGE_WEBHOOK_RATE_LIMIT_MAX` / minute)                          |
+| Rate limit                       | In-process sliding window per connection IP+path (`FORGE_WEBHOOK_RATE_LIMIT_MAX` / minute). Client `X-Forwarded-For` / `X-Real-IP` are ignored. |
 | Signatures                       | Plugin-side using instance secrets from `ctx.config.getSecret`                                           |
 
 Idempotency: the host passes request identity (`x-request-id`) to the plugin. It does not keep a payment ledger.

@@ -318,6 +318,51 @@ describe("memory plugin persist", () => {
     );
   });
 
+  it("does not persist secret config fields on createInstance", async () => {
+    const persist = createMemoryPluginPersist();
+    const secret = "smtp-password";
+    await persist.upsertInstall({
+      id: "acme.mail",
+      type: "service",
+      version: "1.0.0",
+      manifest: {
+        ...mailManifest,
+        config: [
+          { key: "host", type: "text", label: "Host" },
+          { key: "api_token", type: "secret", label: "API token" },
+        ],
+      },
+    });
+    const instance = await persist.createInstance({
+      pluginId: "acme.mail",
+      kind: "service",
+      displayName: "Primary",
+      config: { host: "smtp.example.com", api_token: secret },
+    });
+    expect(instance.config).toEqual({ host: "smtp.example.com" });
+    expect(JSON.stringify(instance.config)).not.toContain(secret);
+    const loaded = await persist.getInstance(instance.id);
+    expect(loaded?.config).toEqual({ host: "smtp.example.com" });
+    expect(JSON.stringify(loaded?.config)).not.toContain(secret);
+  });
+
+  it("refuses plugin secret writes in production when APP_KEY is empty", async () => {
+    const persist = createMemoryPluginPersist({
+      appKey: "",
+      nodeEnv: "production",
+    });
+    await persist.upsertInstall({
+      id: "acme.mail",
+      type: "service",
+      version: "1.0.0",
+      manifest: mailManifest,
+    });
+    await expect(
+      persist.setSecret("acme.mail", "api_token", "dev-secret"),
+    ).rejects.toBeInstanceOf(ForgeConfigError);
+    expect(await persist.getSecret("acme.mail", "api_token")).toBeNull();
+  });
+
   it("retains kv after uninstall until explicit purge", async () => {
     const persist = createMemoryPluginPersist();
     await persist.upsertInstall({

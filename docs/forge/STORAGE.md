@@ -21,4 +21,4 @@ Storage methods take a canonical plugin id from the **trusted host**, never a pl
 
 `plugin.json` `config` is a schema only. Values live in instance `config` JSON plus `plugin_secrets`. `validatePluginConfig` is server-side and authoritative (types, required, defaults, min/max, select options). Prototype-pollution keys are rejected. User-supplied regex is not executed.
 
-Secrets use `sealSecret` / `openSecret` with `APP_KEY` (AES-256-GCM via `@fluxo/crypto`). Empty `APP_KEY` stores plaintext, matching settings. Admin DTO helpers expose `secretKeysSet` and never secret values.
+Secrets use `sealSecret` / `openSecret` with `APP_KEY` (AES-256-GCM via `@fluxo/crypto`). Empty `APP_KEY` stores plaintext, matching settings, except production (`NODE_ENV=production`) refuses plugin secret writes when `APP_KEY` is empty. Admin DTO helpers expose `secretKeysSet` and never secret values.

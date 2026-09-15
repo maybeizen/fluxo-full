@@ -62,6 +62,7 @@ async function start(): Promise<void> {
       pluginsDir: env.PLUGINS_DIR,
       database,
       appKey: env.APP_KEY,
+      nodeEnv: env.NODE_ENV,
       httpAllowlist: env.PLUGIN_HTTP_ALLOWLIST,
       users: auth.users,
       settings: auth.settings,
