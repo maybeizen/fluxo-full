@@ -25,6 +25,7 @@
     "@fluxo/db": "workspace:*",
     "@fluxo/forge": "workspace:*",
     "@fluxo/logger": "workspace:*",
+    "@fluxo/plugin-manager": "workspace:*",
     "@fluxo/redis": "workspace:*",
     "@fluxo/s3": "workspace:*",
     "@fluxo/types": "workspace:*",

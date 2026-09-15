@@ -303,6 +303,9 @@ importers:
       '@fluxo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@fluxo/plugin-manager':
+        specifier: workspace:*
+        version: link:../../packages/plugin-manager
       '@fluxo/redis':
         specifier: workspace:*
         version: link:../../packages/redis
