@@ -4,6 +4,10 @@ import type { AppSettingsAdminResponse, AppSettingsPublic } from "@fluxo/types";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import { createMemoryAuth } from "../auth/stores/memory.js";
+import {
+  createForgeEventBus,
+  setActiveForgeEventBus,
+} from "../forge/events.js";
 import type { Mailer } from "../settings/mailer.js";
 
 function mockLogger(): FluxoLogger {
@@ -147,10 +151,38 @@ describe("settings api", () => {
     expect(body.settings.s3SecretAccessKeySet).toBe(true);
     expect(body.settings.securityCaptchaSecretKeySet).toBe(true);
     expect(body.settings.billingInvoicePrefix).toBe("NW");
-    expect(body.themes.map((theme) => theme.id)).toEqual(["default", "example"]);
+    expect(body.themes.map((theme) => theme.id)).toEqual([
+      "default",
+      "example",
+    ]);
     expect(JSON.stringify(body)).not.toContain("super-secret-pass");
     expect(JSON.stringify(body)).not.toContain("secret-key");
     expect(JSON.stringify(body)).not.toContain("captcha-secret");
+  });
+
+  it("emits settings.updated with patched keys only", async () => {
+    const bus = createForgeEventBus();
+    const seen: string[][] = [];
+    bus.on("settings.updated", (payload) => {
+      seen.push(payload.keys);
+    });
+    setActiveForgeEventBus(bus);
+    try {
+      const { app, cookie } = await signedInAdmin();
+      const patched = await app.request("/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({
+          appName: "Northwind",
+          emailSmtpPass: "super-secret-pass",
+        }),
+      });
+      expect(patched.status).toBe(200);
+      expect(seen).toEqual([["appName", "emailSmtpPass"]]);
+      expect(JSON.stringify(seen)).not.toContain("super-secret-pass");
+    } finally {
+      setActiveForgeEventBus(undefined);
+    }
   });
 
   it("leaves omitted secrets unchanged and clears explicit nulls", async () => {
@@ -158,12 +190,19 @@ describe("settings api", () => {
     await app.request("/admin/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json", cookie },
-      body: JSON.stringify({ emailSmtpPass: "keep-me", s3SecretAccessKey: "also-keep" }),
+      body: JSON.stringify({
+        emailSmtpPass: "keep-me",
+        s3SecretAccessKey: "also-keep",
+      }),
     });
     const omitted = await app.request("/admin/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json", cookie },
-      body: JSON.stringify({ appName: "Kept", emailSmtpPass: "", s3SecretAccessKey: undefined }),
+      body: JSON.stringify({
+        appName: "Kept",
+        emailSmtpPass: "",
+        s3SecretAccessKey: undefined,
+      }),
     });
     const omittedBody = (await omitted.json()) as AppSettingsAdminResponse;
     expect(omittedBody.settings.emailSmtpPassSet).toBe(true);
@@ -200,7 +239,9 @@ describe("settings api", () => {
     const body = (await response.json()) as AppSettingsAdminResponse;
     expect(body.settings.activeThemeId).toBe("example");
     const pub = await app.request("/settings/public");
-    expect(((await pub.json()) as AppSettingsPublic).activeThemeId).toBe("example");
+    expect(((await pub.json()) as AppSettingsPublic).activeThemeId).toBe(
+      "example",
+    );
   });
 
   it("uploads and deletes the app icon", async () => {
@@ -218,7 +259,9 @@ describe("settings api", () => {
     });
     expect(uploaded.status).toBe(200);
     const uploadedBody = (await uploaded.json()) as AppSettingsAdminResponse;
-    expect(uploadedBody.settings.appIconUrl).toContain("/files/branding/app-icon");
+    expect(uploadedBody.settings.appIconUrl).toContain(
+      "/files/branding/app-icon",
+    );
     expect(uploadedBody.settings.appIconUrl).toMatch(/\?v=/);
 
     const other = Buffer.from(
@@ -234,15 +277,21 @@ describe("settings api", () => {
     });
     expect(replaced.status).toBe(200);
     const replacedBody = (await replaced.json()) as AppSettingsAdminResponse;
-    expect(replacedBody.settings.appIconUrl).toContain("/files/branding/app-icon");
-    expect(replacedBody.settings.appIconUrl).not.toBe(uploadedBody.settings.appIconUrl);
+    expect(replacedBody.settings.appIconUrl).toContain(
+      "/files/branding/app-icon",
+    );
+    expect(replacedBody.settings.appIconUrl).not.toBe(
+      uploadedBody.settings.appIconUrl,
+    );
 
     const removed = await app.request("/admin/settings/icon", {
       method: "DELETE",
       headers: { cookie },
     });
     expect(removed.status).toBe(200);
-    expect(((await removed.json()) as AppSettingsAdminResponse).settings.appIconUrl).toBeNull();
+    expect(
+      ((await removed.json()) as AppSettingsAdminResponse).settings.appIconUrl,
+    ).toBeNull();
   });
 });
 
@@ -254,7 +303,10 @@ describe("settings auth enforcement", () => {
       headers: { "content-type": "application/json", cookie },
       body: JSON.stringify({ authDisableRegistration: true }),
     });
-    const blocked = await register(app, { username: "cara", email: "cara@example.com" });
+    const blocked = await register(app, {
+      username: "cara",
+      email: "cara@example.com",
+    });
     expect(blocked.status).toBe(403);
     expect(await blocked.json()).toEqual({ code: "registration_disabled" });
   });
@@ -299,7 +351,10 @@ describe("settings auth enforcement", () => {
     const change = await app.request("/auth/password", {
       method: "POST",
       headers: { "content-type": "application/json", cookie },
-      body: JSON.stringify({ currentPassword: "password12", newPassword: "password99" }),
+      body: JSON.stringify({
+        currentPassword: "password12",
+        newPassword: "password99",
+      }),
     });
     expect(change.status).toBe(403);
   });
@@ -349,7 +404,9 @@ describe("settings auth enforcement", () => {
   });
 
   it("requires a valid captcha token when captcha is enabled", async () => {
-    const verifier = vi.fn(async (input: { token: string }) => input.token === "ok-token");
+    const verifier = vi.fn(
+      async (input: { token: string }) => input.token === "ok-token",
+    );
     const ctx = setup({ captchaVerifier: verifier });
     await register(ctx.app);
     await ctx.settings.patch({

@@ -132,18 +132,18 @@ Host order on boot: load + validate → for enabled: `onStart`. Install/enable a
 
 Created by Fluxo. **Trusted `pluginId`.** No `prisma`, `db`, `app`, or `internalServices`.
 
-| Field        | Interface             | Notes                                                          |
-| ------------ | --------------------- | -------------------------------------------------------------- |
-| `pluginId`   | `PluginId`            | From host, not from plugin self-report                         |
-| `instanceId` | `string \| undefined` | Set for service/gateway instance operations                    |
-| `logger`     | `PluginLogger`        | Same shape as `FluxoLogger`; already child-bound               |
+| Field        | Interface             | Notes                                                                                       |
+| ------------ | --------------------- | ------------------------------------------------------------------------------------------- |
+| `pluginId`   | `PluginId`            | From host, not from plugin self-report                                                      |
+| `instanceId` | `string \| undefined` | Set for service/gateway instance operations                                                 |
+| `logger`     | `PluginLogger`        | Same shape as `FluxoLogger`; already child-bound                                            |
 | `config`     | `PluginConfig`        | Read-only `get` / `getSecret` / `all` (secrets omitted from `all`). No `set` / `setSecret`. |
-| `storage`    | `PluginStorage`       | KV namespaced by host; no `forPlugin`                          |
-| `events`     | `PluginEvents`        | Subscribe to `ForgeEventMap`; `emitCustom` permissioned        |
-| `jobs`       | `PluginJobs`          | Public type is **only** `schedule` / `cancel`. There is no `handle` on `@fluxo/forge`. |
-| `http`       | `PluginHttp`          | Allowlisted outbound HTTP                                      |
-| `users`      | `PluginUsersApi`      | `getById` → `PluginUserView` (no hashes, no MFA secret)        |
-| `settings`   | `PluginSettingsApi`   | `getPublic` → name, base URL, billing currency/locale/timezone |
+| `storage`    | `PluginStorage`       | KV namespaced by host; no `forPlugin`                                                       |
+| `events`     | `PluginEvents`        | Subscribe to `ForgeEventMap`; `emitCustom` permissioned                                     |
+| `jobs`       | `PluginJobs`          | `schedule` / `cancel` / `handle`; names qualified by host                                   |
+| `http`       | `PluginHttp`          | Allowlisted outbound HTTP                                                                   |
+| `users`      | `PluginUsersApi`      | `getById` → `PluginUserView` (no hashes, no MFA secret)                                     |
+| `settings`   | `PluginSettingsApi`   | `getPublic` → name, base URL, billing currency/locale/timezone                              |
 
 `PluginConfig.getSecret` is server-only. Never assign it to objects that are `JSON.stringify`’d to the SPA.
 
@@ -152,6 +152,10 @@ Created by Fluxo. **Trusted `pluginId`.** No `prisma`, `db`, `app`, or `internal
 ## Storage
 
 `PluginStorage`: `get` / `set` / `delete` / `keys(prefix?)`. Values `JsonValue`. Keys: `^[a-zA-Z0-9._/-]+$`, no `..`. Host prefixes with plugin id internally. Grow to collections later via key prefixes, not SQL.
+
+Plugin `ctx.storage` **cannot** write keys that start with `forge/` or `fluxo/` (including `fluxo/admin-config`). Those are host-owned; the host writes them through persist, not the plugin wrapper. A plugin `set`/`delete` of a reserved key throws `ForgeError` (`ForgeValidationError`).
+
+`ctx.config` merge order: plugin-level non-secret values from KV `fluxo/admin-config` as base → instance config overlays → secrets from persist (plugin-scoped, then instance-scoped). No `instanceId` still loads plugin-level admin config. Secrets never appear in `get()` / `all()`.
 
 ---
 
@@ -178,7 +182,8 @@ Host logs request meta with `redactHeaders`. Empty `PLUGIN_HTTP_ALLOWLIST` → a
 | `ForgeEventMap`                    | Payload types                                                |
 | `PluginEvents`                     | `on`, `onCustom`, `emitCustom`                               |
 | `qualifyEventName(pluginId, name)` | `plugin.{id}.{name}`                                         |
-| `PluginJobs`                       | `schedule`, `cancel` only. **No job-handler registration** on the public type. |
+| `PluginJobs`                       | `schedule`, `cancel`, `handle`                               |
+| `PluginJobHandler`                 | `(payload?: JsonValue) => void \| Promise<void>`             |
 | `qualifyJobName(pluginId, name)`   | `{id}:{name}`                                                |
 | `PluginJobSchedule`                | `name`, optional `payload`, `runAt` (ISO), `delayMs`, `cron` |
 
@@ -191,7 +196,7 @@ Core events (host emits):
 - `plugin.installed` `plugin.enabled` `plugin.disabled` `plugin.uninstalled`
 - Introduced at the plugin boundary (host is supposed to emit when service/gateway registries accept results): `service.provisioned` `service.suspended` `service.terminated` `payment.completed` `payment.failed` `payment.refunded`
 
-Plugins cannot emit core events. Subscribing to the service/payment names is typed, but this branch’s host does not yet call `emitForgeEvent` for them. `ctx.jobs.schedule` without a host-side handler is a no-op (there is no public `jobs.handle`).
+Plugins cannot emit core events. User and settings mutations emit from admin/auth/settings routes via `emitForgeEvent`. Service and payment events are typed; they will emit from the service/gateway registries in a follow-up. `ctx.jobs.handle` registers an in-process handler; `schedule` without a handler is a no-op.
 
 ---
 
@@ -233,27 +238,21 @@ Capabilities (generic server inventory, not Pterodactyl types):
 
 ## Gateway plugins
 
-| Export                                                            | Semantics                                                                                |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `FluxoGatewayPlugin`                                              | Extends `FluxoPlugin`                                                                    |
-| `CheckoutMode`                                                    | `redirect` \| `token` \| `offline`                                                       |
-| `PaymentStatus`                                                   | `pending processing completed failed canceled refunded`                                  |
-| `CreateCheckoutRequest`                                           | idempotencyKey, instanceId, invoiceId, amount, customer, returnUrl, cancelUrl, metadata? |
-| `CheckoutResult`                                                  | mode, checkoutId, redirectUrl?, clientToken?, status                                     |
-| `RefundRequest` / `RefundResult`                                  | Partial refunds via `Money`                                                              |
-| `GatewayInstance` / `ResolvedGatewayProvider` / `GatewayRegistry` | Same instance pattern as services                                                        |
-| `PluginWebhookRequest` / `PluginWebhookResult`                    | Raw body for HMAC; `recognized` flag                                                     |
-| `FORGE_WEBHOOK_PATH_PREFIX`                                       | `/forge/webhooks`                                                                        |
+| Export                                                            | Semantics                                                                                                                                     |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FluxoGatewayPlugin`                                              | Extends `FluxoPlugin`                                                                                                                         |
+| `CheckoutMode`                                                    | `redirect` \| `token` \| `offline`                                                                                                            |
+| `PaymentStatus`                                                   | `pending processing completed failed canceled refunded`                                                                                       |
+| `CreateCheckoutRequest`                                           | idempotencyKey, instanceId, invoiceId, amount, customer, returnUrl, cancelUrl, metadata?                                                      |
+| `CheckoutResult`                                                  | mode, checkoutId, redirectUrl?, clientToken?, status                                                                                          |
+| `RefundRequest` / `RefundResult`                                  | Partial refunds via `Money`                                                                                                                   |
+| `GatewayInstance` / `ResolvedGatewayProvider` / `GatewayRegistry` | Same instance pattern as services                                                                                                             |
+| `PluginWebhookRequest` / `PluginWebhookResult`                    | Raw body for HMAC; `recognized` flag                                                                                                          |
+| `FORGE_WEBHOOK_PATH_PREFIX`                                       | `/forge/webhooks`                                                                                                                             |
 | `forgeWebhookPath(pluginId, instanceId, name)`                    | Builds `/forge/webhooks/{id}/{instanceId}/{name}`. `instanceId` must be a UUID (`parseInstanceId`); a non-UUID throws `ForgeValidationError`. |
-| `isSafeWebhookName`                                               | `^[a-z][a-z0-9_-]{0,63}$`                                                                |
+| `isSafeWebhookName`                                               | `^[a-z][a-z0-9_-]{0,63}$`                                                                                                                     |
 
-`FluxoGatewayPlugin` methods: `createCheckout`, `getPaymentStatus`, optional `refund`, optional `handleWebhook`. The host also **duck-types** an extra method that is **not** declared on the class:
-
-```ts
-webhookHandlers?(): readonly string[]
-```
-
-Declare that method on your plugin instance (see `plugins/example-gateway`). `registerWebhookHandlers` / `listWebhookHandlers` are host registry APIs, not plugin SDK methods.
+`FluxoGatewayPlugin` methods: `createCheckout`, `getPaymentStatus`, optional `refund`, optional `handleWebhook`, optional `webhookHandlers(): readonly string[]`. The host still duck-types `webhookHandlers` for older plugins. `registerWebhookHandlers` / `listWebhookHandlers` are host registry APIs, not plugin SDK methods.
 
 No card PAN/CVC fields. No Stripe `PaymentIntent` types. Token mode is a client secret/token string for whatever PSP the plugin uses.
 
@@ -261,14 +260,14 @@ No card PAN/CVC fields. No Stripe `PaymentIntent` types. Token mode is a client 
 
 ## Panel plugins
 
-| Export                   | Semantics                                         |
-| ------------------------ | ------------------------------------------------- |
-| `FluxoPanelPlugin`       | Extends `FluxoPlugin`; optional `contributions()` |
-| `PANEL_EXTENSION_POINTS` | Only **existing** SPA surfaces                    |
-| `PanelExtensionPoint`    | Union                                             |
+| Export                   | Semantics                                                                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `FluxoPanelPlugin`       | Extends `FluxoPlugin`; optional `contributions()`                                         |
+| `PANEL_EXTENSION_POINTS` | Only **existing** SPA surfaces                                                            |
+| `PanelExtensionPoint`    | Union                                                                                     |
 | `PanelContribution`      | Metadata only: pluginId, point, contributionId, title?, order?. **No React `component`.** |
-| `PanelExtensionRegistry` | `list` / `register` of that metadata              |
-| `PanelFrontendModule`    | Serializable contribution list for SPA catalog    |
+| `PanelExtensionRegistry` | `list` / `register` of that metadata                                                      |
+| `PanelFrontendModule`    | Serializable contribution list for SPA catalog                                            |
 
 `plugin.json` `frontend` is a declared relative path. The SPA does **not** `import()` that file. A widget only appears after a **static catalog** entry in Fluxo (`apps/frontend/src/plugin-system/catalog.ts`) plus `register()` using `PanelPluginRegistrationApi` from the Fluxo app (`@/plugin-system`), not from `@fluxo/forge`. See [PANEL.md](./PANEL.md).
 

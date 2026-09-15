@@ -27,7 +27,7 @@ const ctx = await host.createContext(pluginId, instanceId);
 | `gateways`                             | Group E `FluxoGatewayRegistry` (`resolve`, checkout, refund, `handleWebhook`)                                  |
 | `createContext(pluginId, instanceId?)` | Builds `PluginContext` with the trusted plugin id                                                              |
 | `events`                               | Host event bus. Plugins subscribe through `ctx.events`. Host code emits with `emitForgeEvent` from `events.ts` |
-| `jobs`                                 | In-process scheduler. Public `PluginJobs` is `schedule` / `cancel` only. Handler registration (`handle`) lives on the host adapter (`HostPluginJobs` in `jobs.ts`) and is **not** exported from `@fluxo/forge`. |
+| `jobs`                                 | In-process scheduler. Plugins use `ctx.jobs.schedule` / `cancel` / `handle` on public `PluginJobs`.            |
 
 Jobs are **in-process timers**, not a shared queue. They are not HA-safe and not persisted: a restart drops them, and each API process keeps its own timers (duplicate fires if you run more than one replica). Plugins must re-schedule work in `onStart`. Do not treat `ctx.jobs` as a durable or clustered worker.
 
@@ -55,7 +55,15 @@ Boot does not call `onInstall` / `onEnable`. Failed plugins are logged and skipp
 
 ## Events from existing mutations
 
-`emitForgeEvent(name, payload)` is a no-op until `startForge` sets the active bus. User CRUD, session issue/destroy, and settings save can call it without importing the manager.
+`emitForgeEvent(name, payload)` is a no-op until `startForge` sets the active bus.
+
+This host emits:
+
+- `user.created` from public registration (`apps/api/src/routes/auth.ts`) and admin user create (`apps/api/src/routes/admin.ts`)
+- `user.updated` / `user.deleted` / `user.suspended` / `user.unsuspended` / `user.roleChanged` from admin user routes
+- `settings.updated` from admin settings save (`apps/api/src/routes/settings.ts`); payload is `{ keys }` only, never secret values
+
+Service events (`service.provisioned`, `service.suspended`, `service.terminated`) will emit from the service registry in a follow-up. Payment events (`payment.completed`, `payment.failed`, `payment.refunded`) will emit from the gateway registry in a follow-up. Session and auth login/logout events are not yet wired from session issue/destroy.
 
 ## Webhooks
 

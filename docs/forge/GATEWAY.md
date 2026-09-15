@@ -41,7 +41,7 @@ One gateway **definition** (plugin id) can have many **instances** (UUID rows in
 
 Checkout/refund/status types come from `@fluxo/forge`. Modes are `redirect` \| `token` \| `offline`. There is **no** card PAN/CVC API.
 
-Plugin authors implement `createCheckout`, `getPaymentStatus`, optional `refund`, and optional `handleWebhook` on `FluxoGatewayPlugin`. Declare webhook allowlist names with an extra `webhookHandlers(): readonly string[]` method on the plugin object (host duck-types it; it is not on the `FluxoGatewayPlugin` class). `forgeWebhookPath` requires a UUID `instanceId`.
+Plugin authors implement `createCheckout`, `getPaymentStatus`, optional `refund`, optional `handleWebhook`, and optional `webhookHandlers(): readonly string[]` on `FluxoGatewayPlugin`. `forgeWebhookPath` requires a UUID `instanceId`.
 
 Fluxo is **not** a PSP ledger. The host stores only enough to replay `createCheckout` identity after a process restart. It does not record invoices, entitlements, or payment journal rows. Plugins must verify webhook signatures and handle replay themselves. Fluxo must **not** grant entitlements from webhook `payment.status` until a future journal exists.
 

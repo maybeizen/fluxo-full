@@ -1,18 +1,16 @@
 import {
+  ForgeError,
   ForgePermissionError,
   type PluginLogger,
   type PluginPermission,
 } from "@fluxo/forge";
 import { UserRole } from "@fluxo/types";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createMemoryUserStore } from "../auth/stores/memory.js";
 import { createMemorySettingsRuntime } from "../settings/runtime.js";
-import {
-  createPluginContext,
-  intersectPluginPermissions,
-} from "./context.js";
+import { createPluginContext, intersectPluginPermissions } from "./context.js";
 import { createForgeEventBus } from "./events.js";
-import { createJobScheduler } from "./jobs.js";
+import { createJobScheduler, type JobScheduler } from "./jobs.js";
 import { createMemoryPluginPersist, type PluginPersist } from "./persist.js";
 
 function silentLogger(): PluginLogger {
@@ -28,6 +26,27 @@ function silentLogger(): PluginLogger {
   return logger;
 }
 
+const schedulers: JobScheduler[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    schedulers.splice(0).map((scheduler) => scheduler.stopAll()),
+  );
+});
+
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 800,
+): Promise<void> {
+  const started = Date.now();
+  while (!predicate()) {
+    if (Date.now() - started > timeoutMs) {
+      throw new Error("timed out");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 async function context(options: {
   pluginId?: string;
   persist?: PluginPersist;
@@ -38,6 +57,8 @@ async function context(options: {
 }) {
   const persist = options.persist ?? createMemoryPluginPersist();
   const logger = silentLogger();
+  const jobs = createJobScheduler({ logger, isPluginEnabled: () => true });
+  schedulers.push(jobs);
   return createPluginContext({
     pluginId: options.pluginId ?? "acme.demo",
     pluginVersion: "1.0.0",
@@ -46,7 +67,7 @@ async function context(options: {
     permissions: options.permissions ?? [],
     logger,
     events: createForgeEventBus(),
-    jobs: createJobScheduler({ logger, isPluginEnabled: () => true }),
+    jobs,
     users: options.users,
     settings: options.settings,
     httpAllowlist: ["panel.example.com"],
@@ -173,5 +194,137 @@ describe("plugin users and settings", () => {
       billingLocale: "fr-FR",
       billingTimezone: "Europe/Paris",
     });
+  });
+});
+
+const mailManifest = {
+  id: "acme.mail",
+  name: "Mail",
+  version: "1.0.0",
+  type: "service" as const,
+  forgeApi: "^0.1.0",
+  entry: "index.js",
+  config: [
+    { key: "url", label: "URL", type: "url" as const },
+    { key: "sandbox", label: "Sandbox", type: "boolean" as const },
+    { key: "region", label: "Region", type: "text" as const },
+    { key: "api_token", label: "Token", type: "secret" as const },
+  ],
+};
+
+describe("plugin admin config", () => {
+  it("loads plugin-level admin config without an instance id", async () => {
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: "acme.mail",
+      type: "service",
+      version: "1.0.0",
+      manifest: mailManifest,
+    });
+    await persist.setKv("acme.mail", "fluxo/admin-config", {
+      url: "https://panel.example",
+      sandbox: true,
+      api_token: "should-not-appear",
+    });
+    await persist.setSecret("acme.mail", "api_token", "plugin-secret");
+    const ctx = await context({ pluginId: "acme.mail", persist });
+    expect(ctx.config.get("url")).toBe("https://panel.example");
+    expect(ctx.config.get("sandbox")).toBe(true);
+    expect(ctx.config.get("api_token")).toBeUndefined();
+    expect(ctx.config.getSecret("api_token")).toBe("plugin-secret");
+    expect(ctx.config.all()).toEqual({
+      url: "https://panel.example",
+      sandbox: true,
+    });
+  });
+
+  it("overlays instance config and instance secrets on plugin-level values", async () => {
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: "acme.mail",
+      type: "service",
+      version: "1.0.0",
+      manifest: mailManifest,
+    });
+    await persist.setKv("acme.mail", "fluxo/admin-config", {
+      url: "https://plugin.example",
+      sandbox: true,
+      region: "eu",
+    });
+    const instance = await persist.createInstance({
+      pluginId: "acme.mail",
+      kind: "service",
+      displayName: "Primary",
+      config: { url: "https://instance.example", sandbox: false },
+    });
+    await persist.setSecret("acme.mail", "api_token", "plugin-secret");
+    await persist.setSecret(
+      "acme.mail",
+      "api_token",
+      "instance-secret",
+      instance.id,
+    );
+    const ctx = await context({
+      pluginId: "acme.mail",
+      persist,
+      instanceId: instance.id,
+    });
+    expect(ctx.config.get("url")).toBe("https://instance.example");
+    expect(ctx.config.get("sandbox")).toBe(false);
+    expect(ctx.config.get("region")).toBe("eu");
+    expect(ctx.config.getSecret("api_token")).toBe("instance-secret");
+    expect(ctx.config.all()).not.toHaveProperty("api_token");
+  });
+});
+
+describe("plugin storage reserved keys", () => {
+  it("rejects plugin writes to host forge/ and fluxo/ keys", async () => {
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: "acme.demo",
+      type: "service",
+      version: "1.0.0",
+      manifest: {
+        id: "acme.demo",
+        name: "Demo",
+        version: "1.0.0",
+        type: "service",
+        forgeApi: "^0.1.0",
+        entry: "index.js",
+      },
+    });
+    const ctx = await context({
+      persist,
+      permissions: ["storage.read", "storage.write"],
+    });
+    await expect(
+      ctx.storage.set("forge/service/state", { ok: true }),
+    ).rejects.toBeInstanceOf(ForgeError);
+    await expect(
+      ctx.storage.set("fluxo/admin-config", { url: "https://evil.example" }),
+    ).rejects.toBeInstanceOf(ForgeError);
+    await persist.setKv("acme.demo", "forge/service/state", { host: true });
+    await ctx.storage.set("state/item", { ok: true });
+    expect(await ctx.storage.get("state/item")).toEqual({ ok: true });
+    expect(await persist.getKv("acme.demo", "forge/service/state")).toEqual({
+      host: true,
+    });
+  });
+});
+
+describe("plugin context jobs", () => {
+  it("registers a PluginJobs handler and the scheduler invokes it", async () => {
+    const ctx = await context({ permissions: ["jobs.schedule"] });
+    const payloads: unknown[] = [];
+    ctx.jobs.handle("tick", (payload) => {
+      payloads.push(payload);
+    });
+    await ctx.jobs.schedule({
+      name: "tick",
+      delayMs: 0,
+      payload: { n: 7 },
+    });
+    await waitFor(() => payloads.length === 1);
+    expect(payloads).toEqual([{ n: 7 }]);
   });
 });

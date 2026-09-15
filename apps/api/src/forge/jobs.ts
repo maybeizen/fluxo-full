@@ -7,6 +7,7 @@ import {
   type JsonValue,
   type PluginId,
   type PluginJobHandle,
+  type PluginJobHandler,
   type PluginJobSchedule,
   type PluginJobs,
   type PluginLogger,
@@ -19,13 +20,9 @@ export const FORGE_JOB_RETRY_DELAY_MS = 50;
 
 const JOB_NAME_PATTERN = /^[a-z][a-z0-9_.-]{0,63}$/;
 
-export type PluginJobHandler = (
-  payload: JsonValue | undefined,
-) => Promise<void> | void;
+export type { PluginJobHandler };
 
-export interface HostPluginJobs extends PluginJobs {
-  handle(name: string, handler: PluginJobHandler): () => void;
-}
+export type HostPluginJobs = PluginJobs;
 
 export interface JobScheduler {
   handle(
@@ -181,7 +178,7 @@ export function createPluginJobs(options: {
   pluginId: PluginId;
   permissions: readonly PluginPermission[];
   scheduler: JobScheduler;
-}): HostPluginJobs {
+}): PluginJobs {
   const permissions = new Set(options.permissions);
   return {
     handle(name, handler) {

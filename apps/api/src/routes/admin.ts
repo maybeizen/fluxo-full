@@ -5,8 +5,12 @@ import type { AppBindings } from "../app-bindings.js";
 import { hashPassword } from "../auth/passwords.js";
 import { requireAdmin } from "../auth/require-admin.js";
 import { requireSession } from "../auth/require-session.js";
-import { adminCreateUserBodySchema, adminPatchUserBodySchema } from "../auth/schemas.js";
+import {
+  adminCreateUserBodySchema,
+  adminPatchUserBodySchema,
+} from "../auth/schemas.js";
 import type { UpdateUserInput, UserRecord } from "../auth/stores/types.js";
+import { emitForgeEvent } from "../forge/events.js";
 import type { AuthRouteOptions } from "./account/shared.js";
 import { registerSettingsAdminRoutes } from "./settings.js";
 
@@ -56,8 +60,13 @@ export function userPatchBlock(
   target: UserRecord,
   input: { role?: UserRole; suspended?: boolean },
   adminCount: number,
-): "cannot_demote_self" | "cannot_suspend_self" | "cannot_demote_last_admin" | null {
-  const demoting = input.role === UserRole.User && target.role === UserRole.Admin;
+):
+  | "cannot_demote_self"
+  | "cannot_suspend_self"
+  | "cannot_demote_last_admin"
+  | null {
+  const demoting =
+    input.role === UserRole.User && target.role === UserRole.Admin;
   if (demoting && actorId === target.id) {
     return "cannot_demote_self";
   }
@@ -90,7 +99,9 @@ export function adminRoutes(options: AuthRouteOptions) {
       users.map((user) => options.passkeys.hasForUser(user.id)),
     );
     return c.json({
-      users: users.map((user, index) => toListItem(user, passkeyFlags[index] === true)),
+      users: users.map((user, index) =>
+        toListItem(user, passkeyFlags[index] === true),
+      ),
     });
   });
 
@@ -103,7 +114,9 @@ export function adminRoutes(options: AuthRouteOptions) {
   });
 
   routes.post("/users", async (c) => {
-    const parsed = adminCreateUserBodySchema.safeParse(await readJson(c.req.raw));
+    const parsed = adminCreateUserBodySchema.safeParse(
+      await readJson(c.req.raw),
+    );
     if (!parsed.success) {
       return c.json({ error: "Invalid request" }, 400);
     }
@@ -116,7 +129,10 @@ export function adminRoutes(options: AuthRouteOptions) {
       return c.json({ error: "Username or email already in use" }, 409);
     }
 
-    const passwordHash = await hashPassword(body.password, options.config.bcryptRounds);
+    const passwordHash = await hashPassword(
+      body.password,
+      options.config.bcryptRounds,
+    );
     const user = await options.users.create({
       username: body.username,
       email: body.email,
@@ -126,12 +142,15 @@ export function adminRoutes(options: AuthRouteOptions) {
       role: body.role ?? UserRole.User,
       emailVerifiedAt: (body.emailVerified ?? true) ? new Date() : null,
     });
+    await emitForgeEvent("user.created", { userId: user.id });
 
     return c.json(await toAdminDetail(options, user), 201);
   });
 
   routes.patch("/users/:id", async (c) => {
-    const parsed = adminPatchUserBodySchema.safeParse(await readJson(c.req.raw));
+    const parsed = adminPatchUserBodySchema.safeParse(
+      await readJson(c.req.raw),
+    );
     if (!parsed.success) {
       return c.json({ error: "Invalid request" }, 400);
     }
@@ -193,7 +212,10 @@ export function adminRoutes(options: AuthRouteOptions) {
         : null;
     }
     if (body.password !== undefined) {
-      patch.passwordHash = await hashPassword(body.password, options.config.bcryptRounds);
+      patch.passwordHash = await hashPassword(
+        body.password,
+        options.config.bcryptRounds,
+      );
     }
     if (body.suspended === true) {
       patch.suspendedAt = user.suspendedAt ?? new Date();
@@ -201,13 +223,33 @@ export function adminRoutes(options: AuthRouteOptions) {
     } else if (body.suspended === false) {
       patch.suspendedAt = null;
       patch.suspendedReason = null;
-    } else if (body.suspendedReason !== undefined && user.suspendedAt !== null) {
+    } else if (
+      body.suspendedReason !== undefined &&
+      user.suspendedAt !== null
+    ) {
       patch.suspendedReason = body.suspendedReason;
     }
 
     const updated = (await options.users.update(user.id, patch)) ?? user;
     if (body.password !== undefined && updated.id !== c.get("user").id) {
       await options.sessions.destroyAllForUser(updated.id);
+    }
+    await emitForgeEvent("user.updated", { userId: updated.id });
+    if (body.role !== undefined && body.role !== user.role) {
+      await emitForgeEvent("user.roleChanged", {
+        userId: updated.id,
+        role: updated.role,
+      });
+    }
+    const wasSuspended = user.suspendedAt !== null;
+    const isSuspended = updated.suspendedAt !== null;
+    if (!wasSuspended && isSuspended) {
+      await emitForgeEvent("user.suspended", {
+        userId: updated.id,
+        reason: updated.suspendedReason,
+      });
+    } else if (wasSuspended && !isSuspended) {
+      await emitForgeEvent("user.unsuspended", { userId: updated.id });
     }
     return c.json(await toAdminDetail(options, updated));
   });
@@ -229,6 +271,7 @@ export function adminRoutes(options: AuthRouteOptions) {
 
     await options.sessions.destroyAllForUser(user.id);
     await options.users.delete(user.id);
+    await emitForgeEvent("user.deleted", { userId: user.id });
     return c.json({ ok: true });
   });
 

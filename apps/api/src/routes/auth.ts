@@ -25,7 +25,10 @@ import {
 } from "../auth/tokens.js";
 import { registerEmailPasswordRoutes } from "./account/email-password.js";
 import { registerMfaRoutes } from "./account/mfa.js";
-import { registerPasskeyLoginRoutes, registerPasskeyRoutes } from "./account/passkeys.js";
+import {
+  registerPasskeyLoginRoutes,
+  registerPasskeyRoutes,
+} from "./account/passkeys.js";
 import { registerProfileRoutes } from "./account/profile.js";
 import { registerSessionRoutes } from "./account/sessions.js";
 import type { AuthRouteOptions } from "./account/shared.js";
@@ -37,6 +40,7 @@ import {
   rejectCaptcha,
   sendAuthMail,
 } from "../settings/guards.js";
+import { emitForgeEvent } from "../forge/events.js";
 
 export type { AuthRouteOptions };
 
@@ -48,7 +52,10 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
-async function loadAuthenticatedUser(options: AuthRouteOptions, cookie: string | undefined) {
+async function loadAuthenticatedUser(
+  options: AuthRouteOptions,
+  cookie: string | undefined,
+) {
   const session = await options.sessions.resolve(cookie);
   if (!session) {
     return { session: null, user: null } as const;
@@ -90,9 +97,13 @@ export function authRoutes(options: AuthRouteOptions) {
       return c.json({ error: "Username or email already in use" }, 409);
     }
 
-    const passwordHash = await hashPassword(body.password, options.config.bcryptRounds);
+    const passwordHash = await hashPassword(
+      body.password,
+      options.config.bcryptRounds,
+    );
     const skipVerification =
-      settings.authDisableEmailVerificationRequirement || options.config.nodeEnv !== "production";
+      settings.authDisableEmailVerificationRequirement ||
+      options.config.nodeEnv !== "production";
     const user = await options.users.create({
       username: body.username,
       email: body.email,
@@ -102,6 +113,7 @@ export function authRoutes(options: AuthRouteOptions) {
       role: isFirstUser ? UserRole.Admin : UserRole.User,
       emailVerifiedAt: skipVerification ? new Date() : null,
     });
+    await emitForgeEvent("user.created", { userId: user.id });
 
     if (!skipVerification) {
       const token = createAuthToken();
@@ -135,7 +147,10 @@ export function authRoutes(options: AuthRouteOptions) {
 
     const rememberMe = parsed.data.rememberMe ?? parsed.data.remember ?? false;
     const user = await options.users.findByUsername(parsed.data.username);
-    if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+    if (
+      !user ||
+      !(await verifyPassword(parsed.data.password, user.passwordHash))
+    ) {
       return c.json({ error: "Invalid credentials" }, 401);
     }
 
@@ -144,12 +159,19 @@ export function authRoutes(options: AuthRouteOptions) {
       return c.json({ code: "login_disabled" }, 403);
     }
 
-    if (emailVerificationRequired(user, settings.authDisableEmailVerificationRequirement)) {
+    if (
+      emailVerificationRequired(
+        user,
+        settings.authDisableEmailVerificationRequirement,
+      )
+    ) {
       return c.json({ code: "email_not_verified" }, 403);
     }
 
     const requireMfa = user.mfaEnabled && !settings.authDisableMfa;
-    const current = await options.sessions.resolve(getCookie(c, SESSION_COOKIE_NAME));
+    const current = await options.sessions.resolve(
+      getCookie(c, SESSION_COOKIE_NAME),
+    );
     const cookieValue = await issueSession(options.sessions, {
       session: current,
       userId: user.id,
@@ -192,7 +214,10 @@ export function authRoutes(options: AuthRouteOptions) {
 
     const backupValid = totpValid
       ? false
-      : await options.backupCodes.consume(user.id, hashBackupCode(normalizeBackupCode(parsed.data.code)));
+      : await options.backupCodes.consume(
+          user.id,
+          hashBackupCode(normalizeBackupCode(parsed.data.code)),
+        );
     if (!totpValid && !backupValid) {
       return c.json({ error: "Invalid code" }, 401);
     }
@@ -225,7 +250,9 @@ export function authRoutes(options: AuthRouteOptions) {
   });
 
   routes.post("/forgot-password", async (c) => {
-    const parsed = forgotPasswordBodySchema.safeParse(await readJson(c.req.raw));
+    const parsed = forgotPasswordBodySchema.safeParse(
+      await readJson(c.req.raw),
+    );
     if (!parsed.success) {
       return c.json({ error: "Invalid request" }, 400);
     }
@@ -278,7 +305,10 @@ export function authRoutes(options: AuthRouteOptions) {
       return c.json({ error: "Invalid or expired token" }, 400);
     }
 
-    const passwordHash = await hashPassword(parsed.data.password, options.config.bcryptRounds);
+    const passwordHash = await hashPassword(
+      parsed.data.password,
+      options.config.bcryptRounds,
+    );
     await options.users.updatePassword(consumed.userId, passwordHash);
     await options.sessions.destroyAllForUser(consumed.userId);
     return c.json({ ok: true });
@@ -308,7 +338,10 @@ export function authRoutes(options: AuthRouteOptions) {
       await options.users.update(consumed.userId, {
         email: nextEmail,
         emailVerifiedAt: new Date(),
-        avatarUrl: user?.avatarSource === "gravatar" ? gravatarUrl(nextEmail) : undefined,
+        avatarUrl:
+          user?.avatarSource === "gravatar"
+            ? gravatarUrl(nextEmail)
+            : undefined,
       });
       return c.json({ ok: true });
     }

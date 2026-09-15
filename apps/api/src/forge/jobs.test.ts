@@ -87,6 +87,26 @@ describe("plugin jobs", () => {
     expect(ran).toBe(0);
   });
 
+  it("invokes a registered handle callback when the job runs", async () => {
+    const scheduler = createJobScheduler({
+      logger: silentLogger(),
+      isPluginEnabled: () => true,
+    });
+    schedulers.push(scheduler);
+    const jobs = createPluginJobs({
+      pluginId: "acme.demo",
+      permissions: ["jobs.schedule"],
+      scheduler,
+    });
+    const payloads: unknown[] = [];
+    jobs.handle("tick", (payload) => {
+      payloads.push(payload);
+    });
+    await jobs.schedule({ name: "tick", delayMs: 0, payload: { n: 3 } });
+    await waitFor(() => payloads.length === 1);
+    expect(payloads).toEqual([{ n: 3 }]);
+  });
+
   it("denies schedule without permission", async () => {
     const scheduler = createJobScheduler({
       logger: silentLogger(),

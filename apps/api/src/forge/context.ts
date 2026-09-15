@@ -1,7 +1,9 @@
 import {
   ForgePermissionError,
+  ForgeValidationError,
   PLUGIN_PERMISSIONS,
   isSensitiveConfigKey,
+  jsonValueSchema,
   parsePluginId,
   type JsonValue,
   type PluginConfig,
@@ -22,6 +24,7 @@ import { createPluginSettingsApi } from "./settings-api.js";
 import { createPluginUsersApi } from "./users-api.js";
 
 const PERMISSION_SET = new Set<string>(PLUGIN_PERMISSIONS);
+const PLUGIN_ADMIN_CONFIG_KV_KEY = "fluxo/admin-config";
 
 export interface CreatePluginContextOptions {
   pluginId: string;
@@ -105,12 +108,14 @@ function createPermissionedStorage(
       if (!allowed.has("storage.write")) {
         throw new ForgePermissionError("storage.write");
       }
+      assertPluginWritableStorageKey(key);
       await storage.set(key, value);
     },
     async delete(key: string) {
       if (!allowed.has("storage.write")) {
         throw new ForgePermissionError("storage.write");
       }
+      assertPluginWritableStorageKey(key);
       await storage.delete(key);
     },
     async keys(prefix?: string) {
@@ -153,15 +158,16 @@ async function loadPluginConfig(
   const secrets: Record<string, string> = {};
   const secretFields = await secretFieldKeys(persist, pluginId);
 
+  assignPublicConfigValues(
+    values,
+    await readPluginAdminConfig(persist, pluginId),
+    secretFields,
+  );
+
   if (instanceId !== undefined) {
     const instance = await persist.getInstance(instanceId);
     if (instance !== undefined && instance.pluginId === pluginId) {
-      for (const [key, value] of Object.entries(instance.config)) {
-        if (secretFields.has(key)) {
-          continue;
-        }
-        values[key] = value;
-      }
+      assignPublicConfigValues(values, instance.config, secretFields);
     }
   }
 
@@ -170,6 +176,58 @@ async function loadPluginConfig(
     await loadSecrets(persist, pluginId, instanceId, secrets);
   }
   return { values, secrets };
+}
+
+async function readPluginAdminConfig(
+  persist: PluginPersist,
+  pluginId: PluginId,
+): Promise<Record<string, JsonValue>> {
+  const stored = await persist.getKv(pluginId, PLUGIN_ADMIN_CONFIG_KV_KEY);
+  if (
+    stored === undefined ||
+    stored === null ||
+    typeof stored !== "object" ||
+    Array.isArray(stored)
+  ) {
+    return {};
+  }
+  const parsed = jsonValueSchema.safeParse(stored);
+  if (
+    !parsed.success ||
+    typeof parsed.data !== "object" ||
+    parsed.data === null ||
+    Array.isArray(parsed.data)
+  ) {
+    return {};
+  }
+  return parsed.data as Record<string, JsonValue>;
+}
+
+function assignPublicConfigValues(
+  target: Record<string, JsonValue>,
+  source: Record<string, JsonValue>,
+  secretFields: Set<string>,
+): void {
+  for (const [key, value] of Object.entries(source)) {
+    if (secretFields.has(key)) {
+      continue;
+    }
+    target[key] = value;
+  }
+}
+
+function isHostReservedStorageKey(key: string): boolean {
+  return (
+    key === PLUGIN_ADMIN_CONFIG_KV_KEY ||
+    key.startsWith("forge/") ||
+    key.startsWith("fluxo/")
+  );
+}
+
+function assertPluginWritableStorageKey(key: string): void {
+  if (isHostReservedStorageKey(key)) {
+    throw new ForgeValidationError("Reserved storage key");
+  }
 }
 
 async function loadSecrets(

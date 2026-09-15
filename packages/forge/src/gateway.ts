@@ -102,4 +102,5 @@ export abstract class FluxoGatewayPlugin extends FluxoPlugin {
     ctx: PluginContext,
     request: PluginWebhookRequest,
   ): Promise<PluginWebhookResult>;
+  webhookHandlers?(): readonly string[];
 }

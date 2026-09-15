@@ -13,9 +13,14 @@ export interface PluginJobHandle {
   jobId: string;
 }
 
+export type PluginJobHandler = (
+  payload: JsonValue | undefined,
+) => Promise<void> | void;
+
 export interface PluginJobs {
   schedule(job: PluginJobSchedule): Promise<PluginJobHandle>;
   cancel(jobId: string): Promise<void>;
+  handle(name: string, handler: PluginJobHandler): () => void;
 }
 
 export function qualifyJobName(pluginId: PluginId, name: string): string {

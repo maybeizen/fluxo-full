@@ -85,6 +85,7 @@ export type { JsonValue } from "./json.js";
 export { jsonValueSchema } from "./json.js";
 export {
   type PluginJobHandle,
+  type PluginJobHandler,
   type PluginJobs,
   type PluginJobSchedule,
   qualifyJobName,
