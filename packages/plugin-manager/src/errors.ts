@@ -1,10 +1,10 @@
-import { ForgeError, ForgeNotFoundError } from "@fluxo/forge";
+import { ForgeError } from "@fluxo/forge";
 
-export class PluginNotFoundError extends ForgeNotFoundError {
+export class PluginNotFoundError extends ForgeError {
   override readonly name = "PluginNotFoundError";
 
   constructor(id: string) {
-    super(`plugin ${id}`);
+    super("forge_not_found", `Not found: plugin ${id}`, 404);
   }
 }
 

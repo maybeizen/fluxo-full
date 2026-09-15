@@ -104,6 +104,10 @@ function failedResult(id: string, error: string): PluginLoadResult {
   return { id, ok: false, error };
 }
 
+function isErrorEntry(entry: PluginEntry): boolean {
+  return entry.status === "error";
+}
+
 function resolveHook(
   plugin: FluxoPlugin,
   hook: ManagerHook,
@@ -532,12 +536,12 @@ export function createPluginManager(
     if (!entry.plugin) {
       throw new PluginNotLoadableError(entry.id);
     }
-    if (entry.status === "error") {
+    if (isErrorEntry(entry)) {
       return;
     }
     if (entry.enabled || entry.started) {
       await disable(id);
-      if (entry.status === "error") {
+      if (isErrorEntry(entry)) {
         return;
       }
     }
