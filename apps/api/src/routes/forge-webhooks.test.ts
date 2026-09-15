@@ -89,6 +89,7 @@ function gatewayPlugin(options?: {
   throwOnWebhook?: boolean;
   handlers?: readonly string[];
   capture?: { request?: PluginWebhookRequest };
+  webhookStatus?: number;
 }): FluxoGatewayPlugin {
   const plugin: FluxoGatewayPlugin & {
     webhookHandlers: () => readonly string[];
@@ -117,7 +118,7 @@ function gatewayPlugin(options?: {
         throw new Error("sk_live_webhook_secret payload=4111111111111111");
       }
       return {
-        status: 200,
+        status: options?.webhookStatus ?? 200,
         recognized: true,
         body: { ok: true },
         payment: { checkoutId: "chk_1", status: "completed" },
@@ -378,6 +379,23 @@ describe("forgeWebhookRoutes", () => {
     );
     expect(response.headers.get("x-request-id")).toEqual(expect.any(String));
     expect(response.headers.get("x-request-id")?.length).toBeGreaterThan(0);
+  });
+
+  it("maps invalid plugin webhook statuses to a Forge 500", async () => {
+    for (const status of [0, 100]) {
+      const { app } = await setup({
+        plugin: gatewayPlugin({ webhookStatus: status }),
+      });
+      const response = await app.request(
+        forgeWebhookPath(PAY_ID, INSTANCE_A, "notify"),
+        { method: "POST", body: "{}" },
+      );
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        error: "Webhook handling failed",
+        code: "forge_webhook",
+      });
+    }
   });
 
   it("does not treat X-Forwarded-For as distinct rate-limit buckets", async () => {

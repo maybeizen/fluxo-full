@@ -233,6 +233,19 @@ export function forgeWebhookRoutes(deps: ForgeWebhookRouteDeps): Hono {
       }
 
       const status = asResponseStatus(result.status);
+      if (status === undefined) {
+        logWebhook(deps.logger, {
+          requestId: requestIdValue,
+          method,
+          pluginId,
+          instanceId,
+          handler,
+          status: 500,
+          recognized: result.recognized,
+          bytes: rawBody.byteLength,
+        });
+        return jsonForgeError(c, WEBHOOK_FAILED, requestIdValue);
+      }
       logWebhook(deps.logger, {
         requestId: requestIdValue,
         method,
@@ -351,7 +364,7 @@ function jsonForgeError(
   return response;
 }
 
-function asResponseStatus(status: number): ContentfulStatusCode {
+function asResponseStatus(status: number): ContentfulStatusCode | undefined {
   if (
     Number.isInteger(status) &&
     status >= 200 &&
@@ -362,7 +375,7 @@ function asResponseStatus(status: number): ContentfulStatusCode {
   ) {
     return status as ContentfulStatusCode;
   }
-  return 200;
+  return undefined;
 }
 
 function allowsWebhooks(manifest: unknown): boolean {
