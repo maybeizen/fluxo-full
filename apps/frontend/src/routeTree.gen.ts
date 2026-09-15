@@ -34,7 +34,8 @@ import { Route as AdminAdminConfigurableOptionsRouteImport } from './routes/_adm
 import { Route as AdminAdminCouponsRouteImport } from './routes/_admin/admin/coupons'
 import { Route as AdminAdminInvoicesRouteImport } from './routes/_admin/admin/invoices'
 import { Route as AdminAdminNewsRouteImport } from './routes/_admin/admin/news'
-import { Route as AdminAdminPluginsRouteImport } from './routes/_admin/admin/plugins'
+import { Route as AdminAdminPluginsIndexRouteImport } from './routes/_admin/admin/plugins/index'
+import { Route as AdminAdminPluginsPluginIdRouteImport } from './routes/_admin/admin/plugins/$pluginId'
 import { Route as AdminAdminProductsRouteImport } from './routes/_admin/admin/products'
 import { Route as AdminAdminServicesRouteImport } from './routes/_admin/admin/services'
 import { Route as AdminAdminSettingsRouteImport } from './routes/_admin/admin/settings'
@@ -165,9 +166,14 @@ const AdminAdminNewsRoute = AdminAdminNewsRouteImport.update({
   path: '/admin/news',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAdminPluginsRoute = AdminAdminPluginsRouteImport.update({
-  id: '/admin/plugins',
-  path: '/admin/plugins',
+const AdminAdminPluginsIndexRoute = AdminAdminPluginsIndexRouteImport.update({
+  id: '/admin/plugins/',
+  path: '/admin/plugins/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminPluginsPluginIdRoute = AdminAdminPluginsPluginIdRouteImport.update({
+  id: '/admin/plugins/$pluginId',
+  path: '/admin/plugins/$pluginId',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminProductsRoute = AdminAdminProductsRouteImport.update({
@@ -223,7 +229,8 @@ export interface FileRoutesByFullPath {
   '/admin/coupons': typeof AdminAdminCouponsRoute
   '/admin/invoices': typeof AdminAdminInvoicesRoute
   '/admin/news': typeof AdminAdminNewsRoute
-  '/admin/plugins': typeof AdminAdminPluginsRoute
+  '/admin/plugins/': typeof AdminAdminPluginsIndexRoute
+  '/admin/plugins/$pluginId': typeof AdminAdminPluginsPluginIdRoute
   '/admin/products': typeof AdminAdminProductsRoute
   '/admin/services': typeof AdminAdminServicesRoute
   '/admin/settings': typeof AdminAdminSettingsRoute
@@ -254,7 +261,8 @@ export interface FileRoutesByTo {
   '/admin/coupons': typeof AdminAdminCouponsRoute
   '/admin/invoices': typeof AdminAdminInvoicesRoute
   '/admin/news': typeof AdminAdminNewsRoute
-  '/admin/plugins': typeof AdminAdminPluginsRoute
+  '/admin/plugins': typeof AdminAdminPluginsIndexRoute
+  '/admin/plugins/$pluginId': typeof AdminAdminPluginsPluginIdRoute
   '/admin/products': typeof AdminAdminProductsRoute
   '/admin/services': typeof AdminAdminServicesRoute
   '/admin/settings': typeof AdminAdminSettingsRoute
@@ -289,7 +297,8 @@ export interface FileRoutesById {
   '/_admin/admin/coupons': typeof AdminAdminCouponsRoute
   '/_admin/admin/invoices': typeof AdminAdminInvoicesRoute
   '/_admin/admin/news': typeof AdminAdminNewsRoute
-  '/_admin/admin/plugins': typeof AdminAdminPluginsRoute
+  '/_admin/admin/plugins/': typeof AdminAdminPluginsIndexRoute
+  '/_admin/admin/plugins/$pluginId': typeof AdminAdminPluginsPluginIdRoute
   '/_admin/admin/products': typeof AdminAdminProductsRoute
   '/_admin/admin/services': typeof AdminAdminServicesRoute
   '/_admin/admin/settings': typeof AdminAdminSettingsRoute
@@ -322,7 +331,8 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/invoices'
     | '/admin/news'
-    | '/admin/plugins'
+    | '/admin/plugins/'
+    | '/admin/plugins/$pluginId'
     | '/admin/products'
     | '/admin/services'
     | '/admin/settings'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin/invoices'
     | '/admin/news'
     | '/admin/plugins'
+    | '/admin/plugins/$pluginId'
     | '/admin/products'
     | '/admin/services'
     | '/admin/settings'
@@ -387,7 +398,8 @@ export interface FileRouteTypes {
     | '/_admin/admin/coupons'
     | '/_admin/admin/invoices'
     | '/_admin/admin/news'
-    | '/_admin/admin/plugins'
+    | '/_admin/admin/plugins/'
+    | '/_admin/admin/plugins/$pluginId'
     | '/_admin/admin/products'
     | '/_admin/admin/services'
     | '/_admin/admin/settings'
@@ -581,11 +593,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminNewsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/_admin/admin/plugins': {
-      id: '/_admin/admin/plugins'
+    '/_admin/admin/plugins/': {
+      id: '/_admin/admin/plugins/'
       path: '/admin/plugins'
-      fullPath: '/admin/plugins'
-      preLoaderRoute: typeof AdminAdminPluginsRouteImport
+      fullPath: '/admin/plugins/'
+      preLoaderRoute: typeof AdminAdminPluginsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/plugins/$pluginId': {
+      id: '/_admin/admin/plugins/$pluginId'
+      path: '/admin/plugins/$pluginId'
+      fullPath: '/admin/plugins/$pluginId'
+      preLoaderRoute: typeof AdminAdminPluginsPluginIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/products': {
@@ -639,7 +658,8 @@ interface AdminRouteChildren {
   AdminAdminCouponsRoute: typeof AdminAdminCouponsRoute
   AdminAdminInvoicesRoute: typeof AdminAdminInvoicesRoute
   AdminAdminNewsRoute: typeof AdminAdminNewsRoute
-  AdminAdminPluginsRoute: typeof AdminAdminPluginsRoute
+  AdminAdminPluginsIndexRoute: typeof AdminAdminPluginsIndexRoute
+  AdminAdminPluginsPluginIdRoute: typeof AdminAdminPluginsPluginIdRoute
   AdminAdminProductsRoute: typeof AdminAdminProductsRoute
   AdminAdminServicesRoute: typeof AdminAdminServicesRoute
   AdminAdminSettingsRoute: typeof AdminAdminSettingsRoute
@@ -655,7 +675,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminCouponsRoute: AdminAdminCouponsRoute,
   AdminAdminInvoicesRoute: AdminAdminInvoicesRoute,
   AdminAdminNewsRoute: AdminAdminNewsRoute,
-  AdminAdminPluginsRoute: AdminAdminPluginsRoute,
+  AdminAdminPluginsIndexRoute: AdminAdminPluginsIndexRoute,
+  AdminAdminPluginsPluginIdRoute: AdminAdminPluginsPluginIdRoute,
   AdminAdminProductsRoute: AdminAdminProductsRoute,
   AdminAdminServicesRoute: AdminAdminServicesRoute,
   AdminAdminSettingsRoute: AdminAdminSettingsRoute,

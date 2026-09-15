@@ -22,6 +22,11 @@ import { AdminSettingsThemeTab } from "@/themes/default/pages/admin/settings/the
 import { UserEditForm } from "@/themes/default/pages/admin/user-edit-form";
 import { UserOverviewCard } from "@/themes/default/pages/admin/user-overview-card";
 import { UsersTable } from "@/themes/default/pages/admin/users-table";
+import { AdminPluginsPage } from "@/themes/default/pages/admin/plugins/plugins-page";
+import { AdminPluginsTable } from "@/themes/default/pages/admin/plugins/plugins-table";
+import { AdminPluginDetailPage } from "@/themes/default/pages/admin/plugins/plugin-detail-page";
+import { AdminPluginConfigForm } from "@/themes/default/pages/admin/plugins/plugin-config-form";
+import { AdminPluginInstancesCard } from "@/themes/default/pages/admin/plugins/plugin-instances-card";
 import { AuthCard } from "@/themes/default/pages/auth/auth-card";
 import { AuthLayout } from "@/themes/default/pages/auth/auth-layout";
 import { AuthSocialActions } from "@/themes/default/pages/auth/auth-social-actions";
@@ -297,4 +302,9 @@ export const defaultComponents = {
   UserEditForm,
   UserOverviewCard,
   UsersTable,
+  AdminPluginsPage,
+  AdminPluginsTable,
+  AdminPluginDetailPage,
+  AdminPluginConfigForm,
+  AdminPluginInstancesCard,
 };
