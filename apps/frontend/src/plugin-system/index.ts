@@ -26,6 +26,7 @@ export type {
   PanelPluginModule,
   PanelPluginRegistrationApi,
   PanelSlotProps,
+  RenderablePanelContribution,
   ResolvablePanelCatalog,
 } from "./types";
 export { usePluginExtensions } from "./use-plugin-extensions";

@@ -4,8 +4,7 @@
     "rootDir": "src",
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@fluxo/forge": ["../../packages/forge/src/index.ts"]
+      "@/*": ["./src/*"]
     },
     "types": ["vite/client", "node", "@testing-library/jest-dom"]
   },

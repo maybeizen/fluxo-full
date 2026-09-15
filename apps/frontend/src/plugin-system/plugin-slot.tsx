@@ -1,7 +1,6 @@
 import type { PanelExtensionPoint } from "@fluxo/forge";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import type { ComponentType } from "react";
-import type { FrontendPanelContribution, PanelContributionPropsMap, PanelSlotProps } from "./types";
+import type { PanelContributionPropsMap, PanelSlotProps, RenderablePanelContribution } from "./types";
 import { usePluginExtensions } from "./use-plugin-extensions";
 
 interface BoundaryProps {
@@ -43,9 +42,7 @@ export function PluginSlot<P extends PanelExtensionPoint>({
   slotProps,
 }: {
   point: P;
-  contributions?: readonly (FrontendPanelContribution<P> & {
-    component: ComponentType<PanelContributionPropsMap[P]>;
-  })[];
+  contributions?: readonly RenderablePanelContribution<P>[];
   slotProps: PanelSlotProps<P>;
 }) {
   const registered = usePluginExtensions(point);

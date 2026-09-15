@@ -5,8 +5,7 @@ import {
   type PanelExtensionPoint,
   type PanelExtensionRegistry,
 } from "@fluxo/forge";
-import type { ComponentType } from "react";
-import type { FrontendPanelContribution, PanelContributionPropsMap } from "./types";
+import type { FrontendPanelContribution, RenderablePanelContribution } from "./types";
 
 const CONTRIBUTION_ID_PATTERN = /^[a-z][a-z0-9_]*$/;
 const CONTRIBUTION_ID_MAX_LENGTH = 64;
@@ -40,12 +39,10 @@ function compareContributions(left: PanelContribution, right: PanelContribution)
   return left.contributionId.localeCompare(right.contributionId);
 }
 
-function isRenderableContribution<P extends PanelExtensionPoint>(
+function isRenderableContribution(
   contribution: FrontendPanelContribution,
-  point: P,
-): contribution is FrontendPanelContribution<P> & {
-  component: ComponentType<PanelContributionPropsMap[P]>;
-} {
+  point: PanelExtensionPoint,
+): boolean {
   return contribution.point === point && typeof contribution.component === "function";
 }
 
@@ -57,9 +54,7 @@ export interface PanelExtensionStore extends PanelExtensionRegistry {
   listEnabled<P extends PanelExtensionPoint>(
     point: P,
     enabledPluginIds?: readonly string[] | null,
-  ): readonly (FrontendPanelContribution<P> & {
-    component: ComponentType<PanelContributionPropsMap[P]>;
-  })[];
+  ): readonly RenderablePanelContribution<P>[];
   reset(): void;
   subscribe(listener: () => void): () => void;
   getSnapshot(): number;
@@ -143,10 +138,9 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
           : enabledPluginIdsOverride === null
             ? null
             : new Set(enabledPluginIdsOverride);
-      const listed = store.list(point).filter((entry): entry is FrontendPanelContribution<typeof point> & {
-        component: ComponentType<PanelContributionPropsMap[typeof point]>;
-      } => isRenderableContribution(entry, point) && matchesEnabled(entry.pluginId, filter));
-      return listed;
+      return store.list(point).filter(
+        (entry) => isRenderableContribution(entry, point) && matchesEnabled(entry.pluginId, filter),
+      ) as RenderablePanelContribution<typeof point>[];
     },
     reset() {
       contributions.clear();
@@ -170,9 +164,7 @@ export function createPanelExtensionRegistry(): PanelExtensionStore {
 export const panelExtensionRegistry = createPanelExtensionRegistry();
 
 export function registerPanelContribution<P extends PanelExtensionPoint>(
-  contribution: FrontendPanelContribution<P> & {
-    component: ComponentType<PanelContributionPropsMap[P]>;
-  },
+  contribution: RenderablePanelContribution<P>,
 ): void {
   panelExtensionRegistry.register(contribution);
 }
@@ -192,8 +184,6 @@ export function resetPanelExtensionRegistry(): void {
 export function getPanelExtensions<P extends PanelExtensionPoint>(
   point: P,
   enabledPluginIds?: readonly string[] | null,
-): readonly (FrontendPanelContribution<P> & {
-  component: ComponentType<PanelContributionPropsMap[P]>;
-})[] {
+): readonly RenderablePanelContribution<P>[] {
   return panelExtensionRegistry.listEnabled(point, enabledPluginIds);
 }

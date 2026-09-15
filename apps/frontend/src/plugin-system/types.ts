@@ -44,12 +44,13 @@ export interface FrontendPanelContribution<P extends PanelExtensionPoint = Panel
   component?: ComponentType<PanelContributionPropsMap[P]>;
 }
 
+export type RenderablePanelContribution<P extends PanelExtensionPoint = PanelExtensionPoint> =
+  FrontendPanelContribution<P> & {
+    component: ComponentType<PanelContributionPropsMap[P]>;
+  };
+
 export interface PanelPluginRegistrationApi {
-  register: <P extends PanelExtensionPoint>(
-    contribution: FrontendPanelContribution<P> & {
-      component: ComponentType<PanelContributionPropsMap[P]>;
-    },
-  ) => void;
+  register: <P extends PanelExtensionPoint>(contribution: RenderablePanelContribution<P>) => void;
 }
 
 export interface PanelPluginModule {
