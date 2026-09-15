@@ -2,7 +2,9 @@ import { isPluginId } from "@fluxo/forge";
 import { registerPanelContribution } from "./registry";
 import type { PanelPluginModule, ResolvablePanelCatalog } from "./types";
 
-export const panelPluginCatalog = {} as const;
+export const panelPluginCatalog = {
+  "example-panel": () => import("./plugins/example-panel"),
+} as const;
 
 export type PanelPluginCatalogId = keyof typeof panelPluginCatalog;
 
@@ -10,7 +12,11 @@ export function parsePanelPluginCatalogId(
   value: string | undefined,
   catalog: Record<string, unknown> = panelPluginCatalog,
 ): string | undefined {
-  if (typeof value === "string" && value.length > 0 && Object.hasOwn(catalog, value)) {
+  if (
+    typeof value === "string" &&
+    value.length > 0 &&
+    Object.hasOwn(catalog, value)
+  ) {
     return value;
   }
   return undefined;

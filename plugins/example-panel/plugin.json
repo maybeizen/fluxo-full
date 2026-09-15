@@ -1,0 +1,18 @@
+{
+  "id": "example-panel",
+  "name": "Example Panel",
+  "version": "1.0.0",
+  "type": "panel",
+  "forgeApi": "^0.1.0",
+  "entry": "src/index.ts",
+  "description": "Example panel plugin that contributes an admin dashboard widget.",
+  "author": "Fluxo",
+  "contributions": [
+    {
+      "point": "admin.dashboard.widget",
+      "contributionId": "status",
+      "title": "Example",
+      "order": 50
+    }
+  ]
+}

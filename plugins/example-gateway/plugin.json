@@ -1,0 +1,38 @@
+{
+  "id": "example-gateway",
+  "name": "Example Gateway",
+  "version": "1.0.0",
+  "type": "gateway",
+  "forgeApi": "^0.1.0",
+  "entry": "src/index.ts",
+  "description": "In-process example payment gateway used for Forge tests.",
+  "author": "Fluxo",
+  "config": [
+    {
+      "key": "url",
+      "label": "Gateway URL",
+      "type": "url",
+      "required": true,
+      "default": "https://example.invalid"
+    },
+    {
+      "key": "secret",
+      "label": "Webhook secret",
+      "type": "secret",
+      "required": true
+    },
+    {
+      "key": "sandbox",
+      "label": "Sandbox mode",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "permissions": [
+    "config.read",
+    "billing.checkout",
+    "billing.refund",
+    "billing.webhook",
+    "webhooks.receive"
+  ]
+}
