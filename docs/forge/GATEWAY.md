@@ -41,6 +41,8 @@ One gateway **definition** (plugin id) can have many **instances** (UUID rows in
 
 Checkout/refund/status types come from `@fluxo/forge`. Modes are `redirect` \| `token` \| `offline`. There is **no** card PAN/CVC API.
 
+Plugin authors implement `createCheckout`, `getPaymentStatus`, optional `refund`, and optional `handleWebhook` on `FluxoGatewayPlugin`. Declare webhook allowlist names with an extra `webhookHandlers(): readonly string[]` method on the plugin object (host duck-types it; it is not on the `FluxoGatewayPlugin` class). `forgeWebhookPath` requires a UUID `instanceId`.
+
 ## Typed errors
 
 | Class                          | When                                        |

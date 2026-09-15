@@ -86,6 +86,8 @@ export function register(api: PanelPluginRegistrationApi) {
 
 Contribution components receive typed host props (`PluginUserView`, `PluginPublicSettingsView`, and `targetUser` on user-admin points). They do not receive Prisma/Drizzle clients or internal stores.
 
+A drop-in panel package under `PLUGINS_DIR` can declare `contributions` in `plugin.json` for admin inspection. That does **not** load a React widget. `plugin.json` `frontend` is not imported at runtime. Third-party widgets require a first-party catalog PR (`panelPluginCatalog` + a module under `plugin-system/plugins/`). `@fluxo/forge` has no `register()` / `component` API.
+
 Host composition:
 
 ```tsx
