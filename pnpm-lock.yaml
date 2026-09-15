@@ -621,6 +621,9 @@ importers:
       '@fluxo/types':
         specifier: workspace:*
         version: link:../types
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.4
     devDependencies:
       '@fluxo/config':
         specifier: workspace:*

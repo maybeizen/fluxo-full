@@ -20,8 +20,9 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
+    "@fluxo/logger": "workspace:*",
     "@fluxo/types": "workspace:*",
-    "@fluxo/logger": "workspace:*"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@fluxo/config": "workspace:*",

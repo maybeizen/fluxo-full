@@ -43,7 +43,7 @@ export function createPluginManager(options: PluginManagerOptions): PluginManage
     return {
       logger: options.logger.child({ plugin: id }),
       config,
-    };
+    } as unknown as PluginContext;
   }
 
   function snapshot(state: PluginState): PluginState {
