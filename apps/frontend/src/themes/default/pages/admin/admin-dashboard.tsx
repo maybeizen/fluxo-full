@@ -1,9 +1,16 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import type { AdminNavItem } from "@/components/layout/admin-nav";
 import { t } from "@/theme-system/use-t";
 import { useUI } from "@/theme-system/use-ui";
 
-export function AdminDashboard({ items }: { items: readonly AdminNavItem[] }) {
+export function AdminDashboard({
+  items,
+  widgets,
+}: {
+  items: readonly AdminNavItem[];
+  widgets?: ReactNode;
+}) {
   const { Card, CardContent, CardDescription, CardHeader, CardTitle } = useUI();
   const links = items.filter((item) => item.to !== "/admin");
 
@@ -34,6 +41,7 @@ export function AdminDashboard({ items }: { items: readonly AdminNavItem[] }) {
           </div>
         </CardContent>
       </Card>
+      {widgets}
     </div>
   );
 }

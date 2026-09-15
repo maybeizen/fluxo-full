@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { CaptchaField } from "@/features/auth/captcha-field";
 import type { LoginFormModel } from "@/hooks/use-login";
 import { t } from "@/theme-system/use-t";
@@ -21,7 +22,8 @@ export function LoginForm({
   passkeyPending,
   onSubmit,
   onPasskey,
-}: LoginFormModel) {
+  extra,
+}: LoginFormModel & { extra?: ReactNode }) {
   const {
     AuthCard,
     AuthSocialActions,
@@ -41,7 +43,11 @@ export function LoginForm({
       footer={
         <p className="text-sm text-muted-foreground">
           {t("auth.login.footerPrefix")}{" "}
-          <Button variant="link" nativeButton={false} render={<Link to="/register" />}>
+          <Button
+            variant="link"
+            nativeButton={false}
+            render={<Link to="/register" />}
+          >
             {t("auth.login.createAccount")}
           </Button>
         </p>
@@ -49,10 +55,14 @@ export function LoginForm({
     >
       <form onSubmit={onSubmit}>
         <FieldGroup>
-          {loginDisabled ? <FieldError>{t("auth.login.disabled")}</FieldError> : null}
+          {loginDisabled ? (
+            <FieldError>{t("auth.login.disabled")}</FieldError>
+          ) : null}
           {errors.form ? <FieldError>{errors.form}</FieldError> : null}
           <Field data-invalid={Boolean(errors.username) || undefined}>
-            <FieldLabel htmlFor="login-username">{t("auth.login.username")}</FieldLabel>
+            <FieldLabel htmlFor="login-username">
+              {t("auth.login.username")}
+            </FieldLabel>
             <Input
               id="login-username"
               name="username"
@@ -61,10 +71,14 @@ export function LoginForm({
               aria-invalid={Boolean(errors.username) || undefined}
               onChange={(event) => setUsername(event.target.value)}
             />
-            {errors.username ? <FieldError>{errors.username}</FieldError> : null}
+            {errors.username ? (
+              <FieldError>{errors.username}</FieldError>
+            ) : null}
           </Field>
           <Field data-invalid={Boolean(errors.password) || undefined}>
-            <FieldLabel htmlFor="login-password">{t("auth.login.password")}</FieldLabel>
+            <FieldLabel htmlFor="login-password">
+              {t("auth.login.password")}
+            </FieldLabel>
             <Input
               id="login-password"
               name="password"
@@ -74,7 +88,9 @@ export function LoginForm({
               aria-invalid={Boolean(errors.password) || undefined}
               onChange={(event) => setPassword(event.target.value)}
             />
-            {errors.password ? <FieldError>{errors.password}</FieldError> : null}
+            {errors.password ? (
+              <FieldError>{errors.password}</FieldError>
+            ) : null}
           </Field>
           <div className="flex items-center justify-between gap-3">
             <Field orientation="horizontal">
@@ -87,7 +103,11 @@ export function LoginForm({
                 {t("auth.login.remember")}
               </FieldLabel>
             </Field>
-            <Button variant="link" nativeButton={false} render={<Link to="/forgot-password" />}>
+            <Button
+              variant="link"
+              nativeButton={false}
+              render={<Link to="/forgot-password" />}
+            >
               {t("auth.login.forgot")}
             </Button>
           </div>
@@ -98,7 +118,9 @@ export function LoginForm({
                 siteKey={captchaSiteKey}
                 onToken={setCaptchaToken}
               />
-              {errors.captcha ? <FieldError>{errors.captcha}</FieldError> : null}
+              {errors.captcha ? (
+                <FieldError>{errors.captcha}</FieldError>
+              ) : null}
             </>
           ) : null}
           <Field>
@@ -106,9 +128,13 @@ export function LoginForm({
               {pending ? t("auth.login.submitting") : t("auth.login.submit")}
             </Button>
           </Field>
-          <AuthSocialActions passkeyPending={passkeyPending} onPasskey={onPasskey} />
+          <AuthSocialActions
+            passkeyPending={passkeyPending}
+            onPasskey={onPasskey}
+          />
         </FieldGroup>
       </form>
+      {extra}
     </AuthCard>
   );
 }

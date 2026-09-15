@@ -8,6 +8,10 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import { createMemoryAuth } from "../auth/stores/memory.js";
+import {
+  createForgeEventBus,
+  setActiveForgeEventBus,
+} from "../forge/events.js";
 import { userDeletionBlock, userPatchBlock } from "./admin.js";
 
 function mockLogger(): FluxoLogger {
@@ -116,13 +120,23 @@ describe("userPatchBlock", () => {
 
   it("rejects self-demotion before last-admin", () => {
     expect(
-      userPatchBlock("admin-1", { ...admin } as never, { role: UserRole.User }, 2),
+      userPatchBlock(
+        "admin-1",
+        { ...admin } as never,
+        { role: UserRole.User },
+        2,
+      ),
     ).toBe("cannot_demote_self");
   });
 
   it("rejects demoting the last remaining admin", () => {
     expect(
-      userPatchBlock("admin-2", { ...admin } as never, { role: UserRole.User }, 1),
+      userPatchBlock(
+        "admin-2",
+        { ...admin } as never,
+        { role: UserRole.User },
+        1,
+      ),
     ).toBe("cannot_demote_last_admin");
   });
 
@@ -157,14 +171,21 @@ describe("admin users api", () => {
     expect(list.status).toBe(200);
     const listed = (await list.json()) as AdminUserListResponse;
     expect(listed.users).toHaveLength(2);
-    expect(listed.users.map((user) => user.username).sort()).toEqual(["ada", "bob"]);
-    expect(listed.users.find((user) => user.username === "ada")?.role).toBe(UserRole.Admin);
+    expect(listed.users.map((user) => user.username).sort()).toEqual([
+      "ada",
+      "bob",
+    ]);
+    expect(listed.users.find((user) => user.username === "ada")?.role).toBe(
+      UserRole.Admin,
+    );
 
     const ada = listed.users.find((user) => user.username === "ada");
     if (!ada) {
       throw new Error("expected ada");
     }
-    const detail = await app.request(`/admin/users/${ada.id}`, { headers: { cookie } });
+    const detail = await app.request(`/admin/users/${ada.id}`, {
+      headers: { cookie },
+    });
     expect(detail.status).toBe(200);
     const body = (await detail.json()) as AdminUserDetail;
     expect(body.username).toBe("ada");
@@ -367,7 +388,82 @@ describe("admin users api", () => {
     expect(await deleted.json()).toEqual({ ok: true });
     expect(await users.findById(bob.id)).toBeNull();
 
-    const missing = await app.request(`/admin/users/${bob.id}`, { headers: { cookie } });
+    const missing = await app.request(`/admin/users/${bob.id}`, {
+      headers: { cookie },
+    });
     expect(missing.status).toBe(404);
+  });
+
+  it("emits forge user events after successful mutations", async () => {
+    const bus = createForgeEventBus();
+    const events: string[] = [];
+    bus.on("user.created", (payload) => {
+      events.push(`created:${payload.userId}`);
+    });
+    bus.on("user.updated", (payload) => {
+      events.push(`updated:${payload.userId}`);
+    });
+    bus.on("user.suspended", (payload) => {
+      events.push(`suspended:${payload.userId}:${payload.reason}`);
+    });
+    bus.on("user.unsuspended", (payload) => {
+      events.push(`unsuspended:${payload.userId}`);
+    });
+    bus.on("user.roleChanged", (payload) => {
+      events.push(`role:${payload.userId}:${payload.role}`);
+    });
+    bus.on("user.deleted", (payload) => {
+      events.push(`deleted:${payload.userId}`);
+    });
+    setActiveForgeEventBus(bus);
+    try {
+      const { app, cookie } = await signedInAdmin();
+      const created = await app.request("/admin/users", {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({
+          username: "grace",
+          email: "grace@example.com",
+          firstName: "Grace",
+          lastName: "Hopper",
+          password: "password12",
+          role: UserRole.User,
+        }),
+      });
+      expect(created.status).toBe(201);
+      const body = (await created.json()) as AdminUserDetail;
+      expect(events).toContain(`created:${body.id}`);
+
+      const patched = await app.request(`/admin/users/${body.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({
+          role: UserRole.Admin,
+          suspended: true,
+          suspendedReason: "Terms violation",
+        }),
+      });
+      expect(patched.status).toBe(200);
+      expect(events).toContain(`updated:${body.id}`);
+      expect(events).toContain(`role:${body.id}:admin`);
+      expect(events).toContain(`suspended:${body.id}:Terms violation`);
+
+      const cleared = await app.request(`/admin/users/${body.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({ suspended: false }),
+      });
+      expect(cleared.status).toBe(200);
+      expect(events).toContain(`unsuspended:${body.id}`);
+
+      const deleted = await app.request(`/admin/users/${body.id}`, {
+        method: "DELETE",
+        headers: { cookie },
+      });
+      expect(deleted.status).toBe(200);
+      expect(events).toContain(`deleted:${body.id}`);
+    } finally {
+      setActiveForgeEventBus(undefined);
+    }
   });
 });

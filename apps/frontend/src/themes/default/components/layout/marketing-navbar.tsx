@@ -51,11 +51,20 @@ export function MarketingNavbar({ items, accountMenu }: MarketingNavbarProps) {
           {accountMenu.isPending ? (
             <Skeleton className="h-8 w-28" />
           ) : user ? (
-            <AvatarDropdown user={user} items={accountMenu.items} onSignOut={accountMenu.onSignOut} />
+            <AvatarDropdown
+              user={user}
+              items={accountMenu.items}
+              extraItems={accountMenu.extraItems}
+              onSignOut={accountMenu.onSignOut}
+            />
           ) : (
             <>
               {settings.authDisableLogin ? null : (
-                <Button nativeButton={false} render={<Link to="/login" />} variant="ghost">
+                <Button
+                  nativeButton={false}
+                  render={<Link to="/login" />}
+                  variant="ghost"
+                >
                   {t("nav.login")}
                 </Button>
               )}
@@ -69,7 +78,9 @@ export function MarketingNavbar({ items, accountMenu }: MarketingNavbarProps) {
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
-            render={<Button variant="ghost" size="icon" className="md:hidden" />}
+            render={
+              <Button variant="ghost" size="icon" className="md:hidden" />
+            }
           >
             <MenuIcon />
             <span className="sr-only">Open navigation</span>
@@ -96,18 +107,26 @@ export function MarketingNavbar({ items, accountMenu }: MarketingNavbarProps) {
                   <AvatarDropdown
                     user={user}
                     items={accountMenu.items}
+                    extraItems={accountMenu.extraItems}
                     onSignOut={accountMenu.onSignOut}
                     className="w-full"
                   />
                 ) : (
                   <>
                     {settings.authDisableLogin ? null : (
-                      <Button nativeButton={false} render={<Link to="/login" />} variant="outline">
+                      <Button
+                        nativeButton={false}
+                        render={<Link to="/login" />}
+                        variant="outline"
+                      >
                         {t("nav.login")}
                       </Button>
                     )}
                     {settings.authDisableRegistration ? null : (
-                      <Button nativeButton={false} render={<Link to="/register" />}>
+                      <Button
+                        nativeButton={false}
+                        render={<Link to="/register" />}
+                      >
                         {t("nav.getStarted")}
                       </Button>
                     )}

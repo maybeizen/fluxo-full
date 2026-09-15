@@ -5,6 +5,11 @@ import { requireAuthenticatedSession } from "@/features/auth/guards";
 import { SuspendedPage } from "@/features/auth/suspended-page";
 import { usePublicSettings } from "@/hooks/use-public-settings";
 import { isAdminRole } from "@/lib/auth";
+import {
+  PluginSlot,
+  toPluginPublicSettings,
+  toPluginUserView,
+} from "@/plugin-system";
 
 export const Route = createFileRoute("/_admin")({
   beforeLoad: async () => {
@@ -27,7 +32,18 @@ function AdminLayout() {
     ? adminNavItems
     : adminNavItems.filter((item) => item.to !== "/admin/support");
   return (
-    <AppShell navItems={navItems}>
+    <AppShell
+      navItems={navItems}
+      extraNav={
+        <PluginSlot
+          point="admin.nav.item"
+          slotProps={{
+            user: toPluginUserView(session.user),
+            settings: toPluginPublicSettings(settings),
+          }}
+        />
+      }
+    >
       <Outlet />
     </AppShell>
   );

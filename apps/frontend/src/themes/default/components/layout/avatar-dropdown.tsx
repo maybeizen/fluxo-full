@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, LogOutIcon } from "lucide-react";
 import type { AccountMenuItem } from "@/hooks/use-account-menu";
@@ -10,11 +10,18 @@ import { useUI } from "@/theme-system/use-ui";
 export interface AvatarDropdownProps {
   user: PublicUser;
   items: AccountMenuItem[];
+  extraItems?: ReactNode;
   onSignOut: () => void;
   className?: string;
 }
 
-export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDropdownProps) {
+export function AvatarDropdown({
+  user,
+  items,
+  extraItems,
+  onSignOut,
+  className,
+}: AvatarDropdownProps) {
   const {
     Avatar,
     AvatarFallback,
@@ -49,7 +56,9 @@ export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDrop
           {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
           <AvatarFallback>{userInitials(user)}</AvatarFallback>
         </Avatar>
-        <span className="min-w-0 truncate group-data-[collapsible=icon]:hidden">{user.username}</span>
+        <span className="min-w-0 truncate group-data-[collapsible=icon]:hidden">
+          {user.username}
+        </span>
         <ChevronDownIcon
           className={cn(
             "ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
@@ -60,12 +69,16 @@ export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDrop
       <DropdownMenuContent align="end" className="min-w-56 max-w-72">
         <div className="flex items-center gap-2 px-2 py-2">
           <Avatar size="sm">
-            {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
+            {user.avatarUrl ? (
+              <AvatarImage src={user.avatarUrl} alt="" />
+            ) : null}
             <AvatarFallback>{userInitials(user)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{fullName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {user.email}
+            </p>
           </div>
         </div>
         <DropdownMenuSeparator />
@@ -73,12 +86,16 @@ export function AvatarDropdown({ user, items, onSignOut, className }: AvatarDrop
           {items.map((item) => {
             const Icon = item.icon;
             return (
-              <DropdownMenuItem key={`${item.to}-${item.label}`} render={<Link to={item.to} />}>
+              <DropdownMenuItem
+                key={`${item.to}-${item.label}`}
+                render={<Link to={item.to} />}
+              >
                 <Icon />
                 {item.label}
               </DropdownMenuItem>
             );
           })}
+          {extraItems}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={onSignOut}>

@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import type { SidebarNavItem } from "@/components/layout/app-nav";
 import { BrandLabel } from "@/components/layout/brand-mark";
 import type { AccountMenu } from "@/hooks/use-account-menu";
@@ -7,10 +8,11 @@ import { useUI } from "@/theme-system/use-ui";
 
 export interface AppSidebarProps {
   items: readonly SidebarNavItem[];
+  extraNav?: ReactNode;
   accountMenu: AccountMenu;
 }
 
-export function AppSidebar({ items, accountMenu }: AppSidebarProps) {
+export function AppSidebar({ items, extraNav, accountMenu }: AppSidebarProps) {
   const {
     AvatarDropdown,
     Sidebar,
@@ -26,7 +28,9 @@ export function AppSidebar({ items, accountMenu }: AppSidebarProps) {
     SidebarTrigger,
     Skeleton,
   } = useUI();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
   const user = accountMenu.user;
 
   return (
@@ -62,11 +66,14 @@ export function AppSidebar({ items, accountMenu }: AppSidebarProps) {
                       )}
                     >
                       <Icon />
-                      <span className="group-data-[collapsible=icon]:sr-only">{item.label}</span>
+                      <span className="group-data-[collapsible=icon]:sr-only">
+                        {item.label}
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
+              {extraNav}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -76,6 +83,7 @@ export function AppSidebar({ items, accountMenu }: AppSidebarProps) {
           <AvatarDropdown
             user={user}
             items={accountMenu.items}
+            extraItems={accountMenu.extraItems}
             onSignOut={accountMenu.onSignOut}
             className="w-full"
           />

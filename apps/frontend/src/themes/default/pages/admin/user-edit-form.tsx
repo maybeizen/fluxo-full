@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { formatExactDateTime } from "@/features/admin/format";
 import type { AdminUserDetail } from "@/features/admin/types";
 import type { AdminUserEditorModel } from "@/hooks/use-admin-user-editor";
@@ -34,7 +35,8 @@ export function UserEditForm({
   errors,
   saving,
   onSubmit,
-}: AdminUserEditorModel & { user: AdminUserDetail }) {
+  extraSections,
+}: AdminUserEditorModel & { user: AdminUserDetail; extraSections?: ReactNode }) {
   const {
     Alert,
     AlertDescription,
@@ -64,6 +66,7 @@ export function UserEditForm({
   } = useUI();
 
   return (
+    <>
     <form className="flex flex-col gap-6" onSubmit={(event) => void onSubmit(event)}>
       {errors.form ? (
         <Alert variant="destructive">
@@ -269,5 +272,7 @@ export function UserEditForm({
         </CardFooter>
       </Card>
     </form>
+    {extraSections}
+    </>
   );
 }

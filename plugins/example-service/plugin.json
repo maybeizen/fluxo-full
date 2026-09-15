@@ -1,0 +1,37 @@
+{
+  "id": "example-service",
+  "name": "Example Service",
+  "version": "1.0.0",
+  "type": "service",
+  "forgeApi": "^0.1.0",
+  "entry": "src/index.ts",
+  "description": "In-memory example service provider used for Forge tests.",
+  "author": "Fluxo",
+  "config": [
+    {
+      "key": "url",
+      "label": "Provider URL",
+      "type": "url",
+      "required": true,
+      "default": "https://example.invalid"
+    },
+    {
+      "key": "secret",
+      "label": "Provider secret",
+      "type": "secret",
+      "required": true
+    },
+    {
+      "key": "sandbox",
+      "label": "Sandbox mode",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "permissions": [
+    "config.read",
+    "service.provision",
+    "service.suspend",
+    "service.power"
+  ]
+}

@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  createMemoryHistory,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
+import { registerPanelContribution } from "@/plugin-system";
 import { defaultComponents } from "@/registry/defaults";
 import type { UIComponents, UIOverrides } from "@/registry/types";
 import { routeTree } from "@/routeTree.gen";
@@ -62,40 +73,45 @@ describe("Dashboard page", () => {
     expect(
       screen.getByText(`Joined ${formatJoined(user.createdAt)}`),
     ).toBeInTheDocument();
-    expect(screen.getByText("Edit profile").closest("a")).toHaveAttribute("href", "/settings");
+    expect(screen.getByText("Edit profile").closest("a")).toHaveAttribute(
+      "href",
+      "/settings",
+    );
     const links = screen.getByRole("list", { name: /^links$/i });
-    expect(within(links).getByRole("button", { name: "Documentation" }).closest("a")).toHaveAttribute(
-      "href",
-      "/#docs",
-    );
-    expect(within(links).getByRole("button", { name: "Discord" }).closest("a")).toHaveAttribute(
-      "href",
-      "https://discord.com",
-    );
-    expect(within(links).getByRole("button", { name: "Support" }).closest("a")).toHaveAttribute(
-      "href",
-      "/support",
-    );
+    expect(
+      within(links).getByRole("button", { name: "Documentation" }).closest("a"),
+    ).toHaveAttribute("href", "/#docs");
+    expect(
+      within(links).getByRole("button", { name: "Discord" }).closest("a"),
+    ).toHaveAttribute("href", "https://discord.com");
+    expect(
+      within(links).getByRole("button", { name: "Support" }).closest("a"),
+    ).toHaveAttribute("href", "/support");
   });
 
   it("switches tabs and shows empty states", async () => {
     mockDashboardApis();
     await renderDashboard();
 
-    expect(await screen.findByRole("tab", { name: /active services/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("tab", { name: /active services/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /invoices/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /news/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /^support$/i })).toBeInTheDocument();
     expect(screen.getByText("No active services")).toBeVisible();
-    expect(screen.getByText("You have not provisioned a server yet.")).toBeVisible();
-    expect(screen.getByRole("button", { name: /get a server now!/i }).closest("a")).toHaveAttribute(
-      "href",
-      "/store",
-    );
+    expect(
+      screen.getByText("You have not provisioned a server yet."),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /get a server now!/i }).closest("a"),
+    ).toHaveAttribute("href", "/store");
 
     fireEvent.click(screen.getByRole("tab", { name: /invoices/i }));
     expect(await screen.findByText("No invoices")).toBeVisible();
-    expect(screen.getByText("Usage invoices will appear here when a cycle closes.")).toBeVisible();
+    expect(
+      screen.getByText("Usage invoices will appear here when a cycle closes."),
+    ).toBeVisible();
     expect(screen.queryByText("No active services")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: /news/i }));
@@ -107,9 +123,13 @@ describe("Dashboard page", () => {
   });
 
   it("composes the default theme through useUI", () => {
-    const source = readFileSync(resolve(import.meta.dirname, "./dashboard-page.tsx"), "utf8");
+    const source = readFileSync(
+      resolve(import.meta.dirname, "./dashboard-page.tsx"),
+      "utf8",
+    );
     expect(source).toContain("useUI");
     expect(source).toContain("DashboardPage: View");
+    expect(source).toContain("PluginSlot");
     expect(source).not.toMatch(/@\/themes\//);
     expect(defaultComponents.DashboardPage).toBeTypeOf("function");
     expect(defaultComponents.DashboardProfileCard).toBeTypeOf("function");
@@ -131,7 +151,33 @@ describe("Dashboard page", () => {
     await renderDashboard({ DashboardCta: OverrideCta });
 
     expect(await screen.findByTestId("override-cta")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /browse the store/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /browse the store/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Maya Izen")).toBeInTheDocument();
+  });
+
+  it("renders panel plugin contributions in dashboard tabs", async () => {
+    mockDashboardApis();
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "client.dashboard.services",
+      contributionId: "status",
+      component: () => <p>Acme services widget</p>,
+    });
+    registerPanelContribution({
+      pluginId: "acme.status",
+      point: "client.dashboard.invoices",
+      contributionId: "balance",
+      component: () => <p>Acme invoices widget</p>,
+    });
+
+    await renderDashboard();
+
+    expect(await screen.findByText("Acme services widget")).toBeVisible();
+    expect(screen.queryByText("Acme invoices widget")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /invoices/i }));
+    expect(await screen.findByText("Acme invoices widget")).toBeVisible();
   });
 });

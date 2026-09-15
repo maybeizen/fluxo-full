@@ -9,7 +9,12 @@ coverage/
 .env.local
 .env.*.local
 storage/
-plugins/
 .DS_Store
 .tanstack/
 routeTree.gen.ts
+
+# Workspace plugin packages under plugins/{id}/ are committed.
+# node_modules/, dist/, and .env* remain ignored globally.
+plugins/**/data/
+plugins/**/*.pem
+plugins/**/*.key

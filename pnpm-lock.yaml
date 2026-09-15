@@ -297,9 +297,15 @@ importers:
       '@fluxo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
       '@fluxo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@fluxo/plugin-manager':
+        specifier: workspace:*
+        version: link:../../packages/plugin-manager
       '@fluxo/redis':
         specifier: workspace:*
         version: link:../../packages/redis
@@ -398,6 +404,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
       '@fluxo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -621,6 +630,9 @@ importers:
       '@fluxo/types':
         specifier: workspace:*
         version: link:../types
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.4
     devDependencies:
       '@fluxo/config':
         specifier: workspace:*
@@ -788,6 +800,90 @@ importers:
       '@fluxo/config':
         specifier: workspace:*
         version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.2
+      eslint:
+        specifier: 'catalog:'
+        version: 10.10.0(jiti@2.7.0)
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.0(tsx@4.23.13)(typescript@6.0.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.0(@types/node@22.20.2)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+
+  plugins/example-gateway:
+    dependencies:
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
+    devDependencies:
+      '@fluxo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.2
+      eslint:
+        specifier: 'catalog:'
+        version: 10.10.0(jiti@2.7.0)
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.0(tsx@4.23.13)(typescript@6.0.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.0(@types/node@22.20.2)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+
+  plugins/example-panel:
+    dependencies:
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
+    devDependencies:
+      '@fluxo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.2
+      eslint:
+        specifier: 'catalog:'
+        version: 10.10.0(jiti@2.7.0)
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.0(tsx@4.23.13)(typescript@6.0.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.0(@types/node@22.20.2)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+
+  plugins/example-service:
+    dependencies:
+      '@fluxo/forge':
+        specifier: workspace:*
+        version: link:../../packages/forge
+    devDependencies:
+      '@fluxo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.2

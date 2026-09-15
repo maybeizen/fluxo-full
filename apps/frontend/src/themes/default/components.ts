@@ -22,6 +22,11 @@ import { AdminSettingsThemeTab } from "@/themes/default/pages/admin/settings/the
 import { UserEditForm } from "@/themes/default/pages/admin/user-edit-form";
 import { UserOverviewCard } from "@/themes/default/pages/admin/user-overview-card";
 import { UsersTable } from "@/themes/default/pages/admin/users-table";
+import { AdminPluginsPage } from "@/themes/default/pages/admin/plugins/plugins-page";
+import { AdminPluginsTable } from "@/themes/default/pages/admin/plugins/plugins-table";
+import { AdminPluginDetailPage } from "@/themes/default/pages/admin/plugins/plugin-detail-page";
+import { AdminPluginConfigForm } from "@/themes/default/pages/admin/plugins/plugin-config-form";
+import { AdminPluginInstancesCard } from "@/themes/default/pages/admin/plugins/plugin-instances-card";
 import { AuthCard } from "@/themes/default/pages/auth/auth-card";
 import { AuthLayout } from "@/themes/default/pages/auth/auth-layout";
 import { AuthSocialActions } from "@/themes/default/pages/auth/auth-social-actions";
@@ -54,8 +59,16 @@ import { PasskeysCard } from "@/themes/default/pages/settings/passkeys-card";
 import { PasswordCard } from "@/themes/default/pages/settings/password-card";
 import { ProfileSection } from "@/themes/default/pages/settings/profile-section";
 import { SessionsSection } from "@/themes/default/pages/settings/sessions-section";
-import { Alert, AlertDescription, AlertTitle } from "@/themes/default/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/themes/default/components/ui/avatar";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/themes/default/components/ui/alert";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/themes/default/components/ui/avatar";
 import { Badge } from "@/themes/default/components/ui/badge";
 import { Button } from "@/themes/default/components/ui/button";
 import {
@@ -145,7 +158,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/themes/default/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/themes/default/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/themes/default/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -297,4 +315,9 @@ export const defaultComponents = {
   UserEditForm,
   UserOverviewCard,
   UsersTable,
+  AdminPluginsPage,
+  AdminPluginsTable,
+  AdminPluginDetailPage,
+  AdminPluginConfigForm,
+  AdminPluginInstancesCard,
 };

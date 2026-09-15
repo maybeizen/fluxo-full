@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type {
   DashboardProfileLink,
   DashboardTabId,
@@ -16,6 +16,7 @@ export function DashboardPage({
   profileTo,
   ctaTo,
   supportTo,
+  extensions,
 }: {
   user: PublicUser;
   joinedLabel: string;
@@ -24,6 +25,7 @@ export function DashboardPage({
   profileTo: "/settings";
   ctaTo: "/store";
   supportTo?: "/support";
+  extensions?: Partial<Record<DashboardTabId, ReactNode>>;
 }) {
   const {
     Card,
@@ -52,14 +54,24 @@ export function DashboardPage({
   return (
     <div className="grid min-h-[36rem] flex-1 gap-6 lg:h-[calc(100svh-5.5rem)] lg:min-h-0 lg:grid-cols-[minmax(16rem,19rem)_minmax(0,1fr)]">
       <div className="grid min-h-0 grid-rows-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
-        <DashboardProfileCard user={user} joinedLabel={joinedLabel} profileTo={profileTo} />
+        <DashboardProfileCard
+          user={user}
+          joinedLabel={joinedLabel}
+          profileTo={profileTo}
+        />
         <DashboardLinksCard links={links} />
       </div>
       <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,2fr)] gap-6">
-        <DashboardCta name={user.firstName.trim() || user.username} actionTo={ctaTo} />
+        <DashboardCta
+          name={user.firstName.trim() || user.username}
+          actionTo={ctaTo}
+        />
         <Card className="flex min-h-0 flex-col overflow-hidden">
           <CardContent className="flex min-h-0 flex-1 flex-col">
-            <Tabs defaultValue={tabs[0]?.id ?? "services"} className="flex min-h-0 flex-1 flex-col">
+            <Tabs
+              defaultValue={tabs[0]?.id ?? "services"}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <TabsList variant="line" className="flex-wrap">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
@@ -74,8 +86,13 @@ export function DashboardPage({
               {tabs.map((tab) => {
                 const Panel = panels[tab.id];
                 return (
-                  <TabsContent key={tab.id} value={tab.id} className="min-h-0 flex-1">
+                  <TabsContent
+                    key={tab.id}
+                    value={tab.id}
+                    className="min-h-0 flex-1"
+                  >
                     <Panel />
+                    {extensions?.[tab.id]}
                   </TabsContent>
                 );
               })}

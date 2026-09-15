@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@fluxo/types"],
+    exclude: ["@fluxo/types", "@fluxo/forge"],
   },
   plugins: [
     tanstackRouter({
@@ -27,7 +27,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
-      "@fluxo/types": path.resolve(workspaceRoot, "packages/types/src/index.ts"),
+      "@fluxo/types": path.resolve(
+        workspaceRoot,
+        "packages/types/src/index.ts",
+      ),
+      "@fluxo/forge": path.resolve(
+        workspaceRoot,
+        "packages/forge/src/index.ts",
+      ),
     },
   },
 });

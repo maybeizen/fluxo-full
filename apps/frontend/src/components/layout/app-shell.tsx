@@ -1,25 +1,52 @@
 import type { ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { appNavItems, crumbsForPath, homePathFor, type SidebarNavItem } from "@/components/layout/app-nav";
+import {
+  appNavItems,
+  crumbsForPath,
+  homePathFor,
+  type SidebarNavItem,
+} from "@/components/layout/app-nav";
 import { useAccountMenu } from "@/hooks/use-account-menu";
 import { usePublicSettings } from "@/hooks/use-public-settings";
+import {
+  PluginSlot,
+  toPluginPublicSettings,
+  toPluginUserView,
+} from "@/plugin-system";
 import { useUI } from "@/theme-system";
 
 export interface AppShellProps {
   children: ReactNode;
   navItems?: readonly SidebarNavItem[];
+  extraNav?: ReactNode;
 }
 
-export function AppShell({ children, navItems = appNavItems }: AppShellProps) {
+export function AppShell({
+  children,
+  navItems = appNavItems,
+  extraNav,
+}: AppShellProps) {
   const { AppShell: ThemeAppShell } = useUI();
   const accountMenu = useAccountMenu();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
   const settings = usePublicSettings();
+  const extraItems = accountMenu.user ? (
+    <PluginSlot
+      point="client.shell.accountMenu"
+      slotProps={{
+        user: toPluginUserView(accountMenu.user),
+        settings: toPluginPublicSettings(settings),
+      }}
+    />
+  ) : undefined;
 
   return (
     <ThemeAppShell
       navItems={navItems}
-      accountMenu={accountMenu}
+      extraNav={extraNav}
+      accountMenu={{ ...accountMenu, extraItems }}
       crumbs={crumbsForPath(pathname)}
       homeTo={homePathFor(pathname)}
     >

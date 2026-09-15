@@ -8,6 +8,7 @@ import { assertRedis, createRedis } from "@fluxo/redis";
 import { createApp } from "./app.js";
 import { createAuthServices } from "./auth/create-auth.js";
 import { loadEnv, type Env } from "./env.js";
+import { startForge, stopForge, type ForgeHost } from "./forge/boot.js";
 
 const rootEnvPath = path.resolve(import.meta.dirname, "../../../.env");
 if (existsSync(rootEnvPath)) {
@@ -24,7 +25,9 @@ async function start(): Promise<void> {
   try {
     env = loadEnv();
   } catch (error) {
-    logger.error(error instanceof Error ? error.message : "Invalid environment");
+    logger.error(
+      error instanceof Error ? error.message : "Invalid environment",
+    );
     process.exit(1);
   }
 
@@ -37,7 +40,9 @@ async function start(): Promise<void> {
   try {
     await assertDatabase(database);
   } catch (error) {
-    logger.error(error instanceof Error ? error.message : "Postgres unavailable");
+    logger.error(
+      error instanceof Error ? error.message : "Postgres unavailable",
+    );
     process.exit(1);
   }
 
@@ -50,15 +55,44 @@ async function start(): Promise<void> {
   }
 
   const auth = await createAuthServices({ database, redis, env, logger });
+  let forge: ForgeHost | undefined;
+  try {
+    forge = await startForge({
+      logger,
+      pluginsDir: env.PLUGINS_DIR,
+      database,
+      appKey: env.APP_KEY,
+      nodeEnv: env.NODE_ENV,
+      httpAllowlist: env.PLUGIN_HTTP_ALLOWLIST,
+      users: auth.users,
+      settings: auth.settings,
+    });
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error.message : "Forge failed to start",
+    );
+  }
+
   const app = createApp({
     logger,
     redis,
     postgres: database,
     corsOrigin: env.FRONTEND_URL,
     auth,
+    forge,
   });
   serve({ fetch: app.fetch, port: env.PORT });
   logger.info("api listening", { port: env.PORT, name: env.APP_NAME });
+
+  const shutdown = (signal: string): void => {
+    void (async () => {
+      logger.info("api stopping", { signal });
+      await stopForge();
+      process.exit(0);
+    })();
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 void start();

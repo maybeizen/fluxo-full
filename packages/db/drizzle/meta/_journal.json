@@ -22,6 +22,13 @@
       "when": 1789269326062,
       "tag": "0002_daffy_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789438533289,
+      "tag": "0003_pale_stingray",
+      "breakpoints": true
     }
   ]
 }
