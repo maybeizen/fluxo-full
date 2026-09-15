@@ -268,10 +268,18 @@ export function createServiceRegistry(
       raw,
       replay?.operationId ?? randomUUID(),
     );
-    if (result.status !== "failed") {
-      await persistProvision(instance, request, result);
+    const stored = await loadServiceState(
+      instance.pluginId,
+      instance.id,
+      request.serviceId,
+    );
+    const remoteId = result.remoteId ?? stored?.remoteId;
+    const merged =
+      remoteId === undefined ? result : { ...result, remoteId };
+    if (merged.status !== "failed") {
+      await persistProvision(instance, request, merged);
     }
-    return result;
+    return merged;
   }
 
   async function getServiceWithPlugin(
