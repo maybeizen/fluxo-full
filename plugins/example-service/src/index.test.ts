@@ -106,8 +106,24 @@ describe("example-service", () => {
     expect(SOURCE).not.toMatch(
       /@fluxo\/db|@fluxo\/plugin-manager|prisma|theme-system/,
     );
-    expect(plugin.capabilities()).toEqual(
-      expect.arrayContaining(["provision.create", "provision.suspend"]),
+    expect(plugin.capabilities()).toEqual([
+      "provision.create",
+      "provision.suspend",
+      "provision.unsuspend",
+      "provision.terminate",
+      "provision.modify",
+      "provision.reconcile",
+      "power.start",
+      "power.stop",
+      "power.restart",
+    ]);
+    expect(plugin.capabilities()).not.toEqual(
+      expect.arrayContaining([
+        "access.console",
+        "access.files",
+        "backup.create",
+        "backup.restore",
+      ]),
     );
     expect(plugin.provisioningVariables().map((field) => field.key)).toEqual([
       "hostname",
@@ -139,6 +155,13 @@ describe("example-service", () => {
     );
     expect(suspended.status).toBe("ok");
     expect(suspended.runtime?.state).toBe("suspended");
+
+    const modified = await plugin.provision(
+      ctx,
+      createRequest("inst-a", "svc-1", "modify", "idem-modify"),
+    );
+    expect(modified.status).toBe("ok");
+    expect(modified.remoteId).toBe(created.remoteId);
 
     const current = await plugin.reconcile?.(ctx, {
       instanceId: "inst-a",

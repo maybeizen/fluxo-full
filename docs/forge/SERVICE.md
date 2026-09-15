@@ -58,16 +58,28 @@ Persist already blocks disable/uninstall while enabled instances exist. The regi
 
 Callers ask `provider.supports("provision.create")` using `SERVICE_CAPABILITIES` from `@fluxo/forge`. Unknown capability strings advertised by a plugin are ignored. Do not branch on plugin id.
 
-Bound methods (`provisionService`, `suspend`, `unsuspend`, `terminate`, `getService`, `power`, `health`) always bind `instanceId` from the resolved row. Plugin throws are isolated and mapped to Forge errors. Client-facing bodies use `forgeErrorBody` (message + code only); secrets and stack frames are not copied through.
+Bound methods (`provisionService`, `suspend`, `unsuspend`, `terminate`, `modify`, `getService`, `power`, `health`) always bind `instanceId` from the resolved row. `modify` calls `provision({ action: "modify" })` when `provision.modify` is advertised; it is not a dead capability name. Plugin throws are isolated and mapped to Forge errors. Client-facing bodies use `forgeErrorBody` (message + code only); secrets and stack frames are not copied through.
+
+## Config layers
+
+Three layers. Do not mix them.
+
+1. **Instance admin config** — `plugin.json` `config` schema; values live on the plugin instance (panel URL, API token). During `provision` / `power` / `reconcile` / `health`, `ctx.config` is **instance-scoped** (that instance’s admin config and secrets). It is not the order form.
+2. **Provisioning variables** — product/order form from `provisioningVariables()`; passed as `ProvisionRequest.variables`.
+3. **Runtime** — `ProvisionResult.runtime` plus `remoteId` (generic inventory, not Pterodactyl field names).
 
 ## Persistence
 
 There is no core service/invoice table. Provision results are stored in plugin KV:
 
 - `forge/service/{instanceId}/{serviceId}/state` — `remoteId`, `status`, `operationId`, `runtime`
-- `forge/service/{instanceId}/{serviceId}/idemp/{sha256}` — same `idempotencyKey` + action replays `remoteId` with `idempotentReplay: true`
+- `forge/service/{instanceId}/{serviceId}/idemp/{sha256}` — same `idempotencyKey` + action
 
 Keys are host-namespaced under the plugin id. Failed provisions are not recorded, so callers can retry.
+
+`ok` and `noop` results with the same idempotency key replay `remoteId` with `idempotentReplay: true` and do not call the plugin again. **`pending` is not terminal.** A later call with the same key re-invokes `provision` so the plugin can progress (same `operationId` is kept). Crash-after-remote-create remains a plugin concern; the host does not take a distributed lock. Callers that want a read of current remote state should use `getService` (which calls `reconcile` when `provision.reconcile` is advertised).
+
+Later actions that omit `remoteId` **must not wipe** the stored value. Suspend, unsuspend, terminate, modify, and reconcile merge `result.remoteId ?? stored.remoteId` into state.
 
 ## Health
 

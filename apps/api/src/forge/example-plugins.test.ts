@@ -145,6 +145,8 @@ describe("example plugin registries", () => {
     const westProvider = await registry.resolve(west.id);
     expect(eastProvider.supports("provision.create")).toBe(true);
     expect(westProvider.supports("provision.suspend")).toBe(true);
+    expect(eastProvider.supports("provision.modify")).toBe(true);
+    expect(eastProvider.supports("access.console")).toBe(false);
 
     const eastResult = await eastProvider.provisionService(
       provisionInput("shared"),

@@ -1,6 +1,8 @@
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import {
   FluxoGatewayPlugin,
   ForgeNotFoundError,
+  ForgeValidationError,
   defineGatewayPlugin,
   parsePluginManifest,
   type CheckoutResult,
@@ -63,6 +65,8 @@ const PAYMENT_STATUSES = new Set<PaymentStatus>([
   "refunded",
 ]);
 
+export const WEBHOOK_SIGNATURE_HEADER = "x-webhook-signature";
+
 interface PaymentRecord {
   checkoutId: string;
   instanceId: string;
@@ -73,6 +77,11 @@ interface PaymentRecord {
   refundedAmount?: { amount: number; currency: string };
 }
 
+interface CheckoutIdempotencyRecord {
+  checkoutId: string;
+  amount: { amount: number; currency: string };
+}
+
 function checkoutStoreKey(instanceId: string, checkoutId: string): string {
   return `${instanceId}:${checkoutId}`;
 }
@@ -81,10 +90,108 @@ function idempotencyKey(instanceId: string, key: string): string {
   return `${instanceId}:${key}`;
 }
 
+function webhookEventKey(instanceId: string, eventId: string): string {
+  const digest = createHash("sha256").update(eventId).digest("hex");
+  return `${instanceId}/webhook-events/${digest}`;
+}
+
+function headerValue(
+  headers: Readonly<Record<string, string>>,
+  name: string,
+): string | undefined {
+  const wanted = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === wanted) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function parseSignature(value: string): string | undefined {
+  const trimmed = value.trim();
+  const prefixed = /^sha256=([0-9a-fA-F]+)$/.exec(trimmed);
+  if (prefixed?.[1] !== undefined) {
+    return prefixed[1].toLowerCase();
+  }
+  if (/^[0-9a-fA-F]+$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return undefined;
+}
+
+function hmacHex(secret: string, body: Uint8Array): string {
+  return createHmac("sha256", secret).update(body).digest("hex");
+}
+
+function signaturesEqual(expectedHex: string, providedHex: string): boolean {
+  const expected = Buffer.from(expectedHex, "utf8");
+  const provided = Buffer.from(providedHex, "utf8");
+  if (expected.length !== provided.length) {
+    timingSafeEqual(expected, expected);
+    return false;
+  }
+  return timingSafeEqual(expected, provided);
+}
+
+function verifyWebhookSignature(
+  secret: string | undefined,
+  headers: Readonly<Record<string, string>>,
+  rawBody: Uint8Array,
+): boolean {
+  if (secret === undefined || secret.length === 0) {
+    return false;
+  }
+  const provided = headerValue(headers, WEBHOOK_SIGNATURE_HEADER);
+  if (provided === undefined) {
+    return false;
+  }
+  const providedHex = parseSignature(provided);
+  if (providedHex === undefined) {
+    return false;
+  }
+  return signaturesEqual(hmacHex(secret, rawBody), providedHex);
+}
+
+function amountsMatch(
+  stored: { amount: number; currency: string },
+  requested: { amount: number; currency: string },
+): boolean {
+  return (
+    stored.amount === requested.amount && stored.currency === requested.currency
+  );
+}
+
+function canTransition(from: PaymentStatus, to: PaymentStatus): boolean {
+  if (from === to) {
+    return true;
+  }
+  if (from === "refunded") {
+    return false;
+  }
+  if (from === "completed") {
+    return to === "refunded";
+  }
+  return true;
+}
+
+function eventIdFrom(
+  body: Record<string, unknown>,
+  rawBody: Uint8Array,
+): string {
+  if (typeof body.eventId === "string" && body.eventId.length > 0) {
+    return body.eventId;
+  }
+  return createHash("sha256").update(rawBody).digest("hex");
+}
+
 class ExampleGatewayPlugin extends FluxoGatewayPlugin {
   override readonly manifest = MANIFEST;
   private readonly payments = new Map<string, PaymentRecord>();
-  private readonly checkoutsByIdempotency = new Map<string, string>();
+  private readonly checkoutsByIdempotency = new Map<
+    string,
+    CheckoutIdempotencyRecord
+  >();
   private sequence = 0;
 
   webhookHandlers(): readonly string[] {
@@ -95,12 +202,16 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
     _ctx: PluginContext,
     request: CreateCheckoutRequest,
   ): Promise<CheckoutResult> {
-    const replay = this.checkoutsByIdempotency.get(
-      idempotencyKey(request.instanceId, request.idempotencyKey),
-    );
+    const key = idempotencyKey(request.instanceId, request.idempotencyKey);
+    const replay = this.checkoutsByIdempotency.get(key);
     if (replay !== undefined) {
+      if (!amountsMatch(replay.amount, request.amount)) {
+        throw new ForgeValidationError(
+          "Checkout idempotency key reused with a different amount",
+        );
+      }
       const stored = this.payments.get(
-        checkoutStoreKey(request.instanceId, replay),
+        checkoutStoreKey(request.instanceId, replay.checkoutId),
       );
       if (stored) {
         return this.toCheckoutResult(stored, request.returnUrl);
@@ -120,10 +231,13 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
       status: "pending",
     };
     this.payments.set(checkoutStoreKey(request.instanceId, checkoutId), record);
-    this.checkoutsByIdempotency.set(
-      idempotencyKey(request.instanceId, request.idempotencyKey),
+    this.checkoutsByIdempotency.set(key, {
       checkoutId,
-    );
+      amount: {
+        amount: request.amount.amount,
+        currency: request.amount.currency,
+      },
+    });
     return this.toCheckoutResult(record, request.returnUrl);
   }
 
@@ -176,10 +290,7 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
     request: PluginWebhookRequest,
   ): Promise<PluginWebhookResult> {
     const expected = ctx.config.getSecret("secret");
-    const provided =
-      request.headers["x-webhook-secret"] ??
-      request.headers["X-Webhook-Secret"];
-    if (expected === undefined || provided !== expected) {
+    if (!verifyWebhookSignature(expected, request.headers, request.rawBody)) {
       return { status: 401, recognized: false };
     }
 
@@ -200,18 +311,40 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
     if (typeof checkoutId !== "string" || !isPaymentStatus(status)) {
       return { status: 400, recognized: true };
     }
+
+    const eventId = eventIdFrom(body, request.rawBody);
+    const eventKey = webhookEventKey(request.instanceId, eventId);
+    const seen = await ctx.storage.get(eventKey);
+    if (isProcessedEvent(seen)) {
+      return {
+        status: 200,
+        recognized: true,
+        body: { ok: true, replay: true },
+        payment: { checkoutId: seen.checkoutId, status: seen.status },
+      };
+    }
+
     const record = this.payments.get(
       checkoutStoreKey(request.instanceId, checkoutId),
     );
     if (record === undefined) {
       return { status: 404, recognized: true };
     }
-    record.status = status;
+
+    if (canTransition(record.status, status)) {
+      record.status = status;
+    }
+
+    await ctx.storage.set(eventKey, {
+      checkoutId: record.checkoutId,
+      status: record.status,
+    });
+
     return {
       status: 200,
       recognized: true,
       body: { ok: true },
-      payment: { checkoutId, status },
+      payment: { checkoutId: record.checkoutId, status: record.status },
     };
   }
 
@@ -246,6 +379,18 @@ class ExampleGatewayPlugin extends FluxoGatewayPlugin {
 function isPaymentStatus(value: unknown): value is PaymentStatus {
   return (
     typeof value === "string" && PAYMENT_STATUSES.has(value as PaymentStatus)
+  );
+}
+
+function isProcessedEvent(
+  value: unknown,
+): value is { checkoutId: string; status: PaymentStatus } {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.checkoutId === "string" && isPaymentStatus(record.status)
   );
 }
 

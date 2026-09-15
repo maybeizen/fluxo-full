@@ -54,7 +54,7 @@ Allowed methods: `GET`, `POST`, `PUT`. Handler names must match `isSafeWebhookNa
 | Rate limit                       | In-process sliding window per connection IP+path (`FORGE_WEBHOOK_RATE_LIMIT_MAX` / minute). Client `X-Forwarded-For` / `X-Real-IP` are ignored. |
 | Signatures                       | Plugin-side using instance secrets from `ctx.config.getSecret`                                           |
 
-Idempotency: the host passes request identity (`x-request-id`) to the plugin. It does not keep a payment ledger.
+Idempotency: the host passes request identity (`x-request-id`) to the plugin. It does not keep a payment ledger. Fluxo is **not** a PSP: webhook `payment.status` must not grant entitlements until a future journal exists.
 
 ## Plugin contract
 
@@ -63,3 +63,17 @@ handleWebhook?(ctx: PluginContext, request: PluginWebhookRequest): Promise<Plugi
 ```
 
 `PluginWebhookRequest.rawBody` is the exact bytes for HMAC. `instanceId` is the path instance. Provider verification stays in the plugin.
+
+Plugins **must**:
+
+- Verify a signature (HMAC or equivalent) of the **raw body** with `ctx.config.getSecret`, using a constant-time compare. Do not accept a shared-secret header as a substitute.
+- Persist processed event ids in `ctx.storage`, keyed by `instanceId`, so provider retries do not re-apply.
+- Keep payment status monotonic: completed/refunded must not move back to pending/failed.
+
+The example gateway (`plugins/example-gateway`) uses:
+
+```
+X-Webhook-Signature: sha256=<hex hmac-sha256 of raw body>
+```
+
+with `ctx.config.getSecret("secret")`. See [GATEWAY.md](./GATEWAY.md).

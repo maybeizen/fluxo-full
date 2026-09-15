@@ -516,4 +516,93 @@ describe("createGatewayRegistry", () => {
       registry.createCheckout(checkoutRequest(INSTANCE_A)),
     ).rejects.toBeInstanceOf(ForgePermissionError);
   });
+
+  it("replays successful checkouts from plugin KV and does not poison on failure", async () => {
+    let attempts = 0;
+    const plugin: FluxoGatewayPlugin = {
+      ...gatewayPlugin(PAY_ID),
+      async createCheckout(_ctx, request) {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error("psp down");
+        }
+        return {
+          mode: "redirect",
+          checkoutId: `chk_${attempts}_${request.instanceId.slice(0, 8)}`,
+          redirectUrl: `https://psp.example/pay/${attempts}`,
+          status: "pending",
+        };
+      },
+    };
+    const persist = createMemoryPluginPersist();
+    await persist.upsertInstall({
+      id: PAY_ID,
+      type: "gateway",
+      version: "1.0.0",
+      manifest: payManifest,
+      enabled: true,
+      status: "started",
+    });
+    await persist.createInstance({
+      id: INSTANCE_A,
+      pluginId: PAY_ID,
+      kind: "gateway",
+      displayName: "Primary",
+      enabled: true,
+    });
+
+    const registry = createGatewayRegistry({
+      persist,
+      getGatewayPlugin: () => plugin,
+      isPluginActive: () => true,
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
+    });
+
+    await expect(
+      registry.createCheckout(checkoutRequest(INSTANCE_A)),
+    ).rejects.toMatchObject({ code: "forge_gateway" });
+    expect(attempts).toBe(1);
+
+    const first = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    expect(first.checkoutId).toBe(`chk_2_${INSTANCE_A.slice(0, 8)}`);
+    expect(attempts).toBe(2);
+
+    const replay = await registry.createCheckout(checkoutRequest(INSTANCE_A));
+    expect(replay).toEqual(first);
+    expect(attempts).toBe(2);
+
+    await expect(
+      registry.createCheckout({
+        ...checkoutRequest(INSTANCE_A),
+        amount: { amount: 5000, currency: "USD" },
+      }),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
+    await expect(
+      registry.createCheckout({
+        ...checkoutRequest(INSTANCE_A),
+        amount: { amount: 1999, currency: "EUR" },
+      }),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
+    expect(attempts).toBe(2);
+
+    const restarted = createGatewayRegistry({
+      persist,
+      getGatewayPlugin: () => plugin,
+      isPluginActive: () => true,
+      createContext: (pluginId, instanceId) =>
+        fakeContext(pluginId, instanceId),
+    });
+    const afterRestart = await restarted.createCheckout(
+      checkoutRequest(INSTANCE_A),
+    );
+    expect(afterRestart).toEqual(first);
+    expect(attempts).toBe(2);
+
+    const keys = await persist.listKvKeys(
+      PAY_ID,
+      `forge/gateway/${INSTANCE_A}/checkout/idemp/`,
+    );
+    expect(keys).toHaveLength(1);
+  });
 });

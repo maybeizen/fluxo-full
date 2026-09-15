@@ -43,6 +43,28 @@ Checkout/refund/status types come from `@fluxo/forge`. Modes are `redirect` \| `
 
 Plugin authors implement `createCheckout`, `getPaymentStatus`, optional `refund`, and optional `handleWebhook` on `FluxoGatewayPlugin`. Declare webhook allowlist names with an extra `webhookHandlers(): readonly string[]` method on the plugin object (host duck-types it; it is not on the `FluxoGatewayPlugin` class). `forgeWebhookPath` requires a UUID `instanceId`.
 
+Fluxo is **not** a PSP ledger. The host stores only enough to replay `createCheckout` identity after a process restart. It does not record invoices, entitlements, or payment journal rows. Plugins must verify webhook signatures and handle replay themselves. Fluxo must **not** grant entitlements from webhook `payment.status` until a future journal exists.
+
+## Checkout idempotency
+
+Successful `createCheckout` results are persisted in plugin KV, namespaced by instance id:
+
+- `forge/gateway/{instanceId}/checkout/idemp/{sha256(idempotencyKey)}`
+
+The same `idempotencyKey` + `instanceId` replays the stored checkout. Amount (and currency) on the replay must match the first request; a mismatch throws `ForgeValidationError`. Failed plugin throws are not written, so a retry can succeed.
+
+## Webhook signatures (example gateway)
+
+`plugins/example-gateway` verifies HMAC-SHA256 of the **raw body** with `ctx.config.getSecret("secret")` using a constant-time compare.
+
+Send:
+
+```
+X-Webhook-Signature: sha256=<hex>
+```
+
+Header names are matched case-insensitively. The hex digest may be sent with or without the `sha256=` prefix. Shared-secret header equality is not accepted. Processed `eventId` values (or the SHA-256 of the raw body when `eventId` is omitted) are stored in `ctx.storage` keyed by instance id so provider retries do not re-apply. Completed and refunded payments do not move back to pending or failed.
+
 ## Typed errors
 
 | Class                          | When                                        |

@@ -57,6 +57,7 @@ const CAPABILITIES = [
   "provision.suspend",
   "provision.unsuspend",
   "provision.terminate",
+  "provision.modify",
   "provision.reconcile",
   "power.start",
   "power.stop",

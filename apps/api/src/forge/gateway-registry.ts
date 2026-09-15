@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   FORGE_HEALTH_TIMEOUT_MS,
   ForgeError,
@@ -5,15 +6,20 @@ import {
   ForgePermissionError,
   ForgeTimeoutError,
   ForgeValidationError,
+  assertNoPrototypePollution,
+  isSafeStorageKey,
   isSafeWebhookName,
+  jsonValueSchema,
   parseInstanceId,
   parsePluginId,
   parseWebhookName,
+  type CheckoutMode,
   type CheckoutResult,
   type CreateCheckoutRequest,
   type FluxoGatewayPlugin,
   type GatewayInstance,
   type GatewayRegistry,
+  type JsonValue,
   type PluginContext,
   type PluginHealthSnapshot,
   type PluginId,
@@ -104,6 +110,26 @@ type GatewayPluginWithHandlers = FluxoGatewayPlugin & {
 const SECRETISH =
   /sk_live|sk_test|whsec_|password|secret|api[_-]?key|bearer\s|-----BEGIN|"iv"\s*:/i;
 const CARDISH_KEY = /card|cvc|cvv|pan|credit.?card/i;
+const CHECKOUT_MODES = new Set<CheckoutMode>(["redirect", "token", "offline"]);
+const PAYMENT_STATUSES = new Set<PaymentStatus>([
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "canceled",
+  "refunded",
+]);
+
+interface StoredCheckout {
+  idempotencyKey: string;
+  amount: number;
+  currency: string;
+  mode: CheckoutMode;
+  checkoutId: string;
+  status: PaymentStatus;
+  redirectUrl?: string;
+  clientToken?: string;
+}
 
 export function createGatewayRegistry(
   deps: GatewayRegistryDeps,
@@ -224,10 +250,27 @@ export function createGatewayRegistry(
       assertNoCardFields(request);
       const resolved = await requireGatewayInstance(request.instanceId);
       assertPermission(resolved.install, "billing.checkout");
+      const replay = await loadCheckoutReplay(
+        persist,
+        resolved.pluginId,
+        resolved.instance.id,
+        request,
+      );
+      if (replay !== undefined) {
+        return replay;
+      }
       const ctx = await contextFor(resolved.pluginId, resolved.instance.id);
-      return invoke(ctx, "createCheckout", () =>
+      const result = await invoke(ctx, "createCheckout", () =>
         resolved.plugin.createCheckout(ctx, request),
       );
+      await persistCheckoutReplay(
+        persist,
+        resolved.pluginId,
+        resolved.instance.id,
+        request,
+        result,
+      );
+      return result;
     },
 
     async getPaymentStatus(request) {
@@ -372,6 +415,159 @@ export function assertNoCardFields(value: object): void {
       throw new ForgeValidationError("Card data is not accepted");
     }
   }
+}
+
+async function loadCheckoutReplay(
+  persist: PluginPersist,
+  pluginId: string,
+  instanceId: string,
+  request: CreateCheckoutRequest,
+): Promise<CheckoutResult | undefined> {
+  const stored = await persist.getKv(
+    pluginId,
+    checkoutIdempotencyKey(instanceId, request.idempotencyKey),
+  );
+  const record = parseStoredCheckout(stored);
+  if (record === undefined) {
+    return undefined;
+  }
+  if (
+    record.amount !== request.amount.amount ||
+    record.currency !== request.amount.currency
+  ) {
+    throw new ForgeValidationError(
+      "Checkout idempotency key reused with a different amount",
+    );
+  }
+  return storedCheckoutResult(record);
+}
+
+async function persistCheckoutReplay(
+  persist: PluginPersist,
+  pluginId: string,
+  instanceId: string,
+  request: CreateCheckoutRequest,
+  result: CheckoutResult,
+): Promise<void> {
+  await persist.setKv(
+    pluginId,
+    checkoutIdempotencyKey(instanceId, request.idempotencyKey),
+    checkoutRecord({
+      idempotencyKey: request.idempotencyKey,
+      amount: request.amount.amount,
+      currency: request.amount.currency,
+      mode: result.mode,
+      checkoutId: result.checkoutId,
+      status: result.status,
+      ...(result.redirectUrl === undefined
+        ? {}
+        : { redirectUrl: result.redirectUrl }),
+      ...(result.clientToken === undefined
+        ? {}
+        : { clientToken: result.clientToken }),
+    }),
+  );
+}
+
+function parseStoredCheckout(
+  value: JsonValue | undefined,
+): StoredCheckout | undefined {
+  if (
+    value === undefined ||
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value)
+  ) {
+    return undefined;
+  }
+  const record = value;
+  if (
+    typeof record.idempotencyKey !== "string" ||
+    typeof record.amount !== "number" ||
+    typeof record.currency !== "string" ||
+    typeof record.checkoutId !== "string" ||
+    typeof record.mode !== "string" ||
+    typeof record.status !== "string"
+  ) {
+    return undefined;
+  }
+  if (!CHECKOUT_MODES.has(record.mode as CheckoutMode)) {
+    return undefined;
+  }
+  if (!PAYMENT_STATUSES.has(record.status as PaymentStatus)) {
+    return undefined;
+  }
+  const parsed = jsonValueSchema.safeParse(record);
+  if (!parsed.success) {
+    return undefined;
+  }
+  try {
+    assertNoPrototypePollution(record);
+  } catch {
+    return undefined;
+  }
+  return {
+    idempotencyKey: record.idempotencyKey,
+    amount: record.amount,
+    currency: record.currency,
+    mode: record.mode as CheckoutMode,
+    checkoutId: record.checkoutId,
+    status: record.status as PaymentStatus,
+    ...(typeof record.redirectUrl === "string"
+      ? { redirectUrl: record.redirectUrl }
+      : {}),
+    ...(typeof record.clientToken === "string"
+      ? { clientToken: record.clientToken }
+      : {}),
+  };
+}
+
+function checkoutRecord(record: StoredCheckout): JsonValue {
+  return {
+    idempotencyKey: record.idempotencyKey,
+    amount: record.amount,
+    currency: record.currency,
+    mode: record.mode,
+    checkoutId: record.checkoutId,
+    status: record.status,
+    ...(record.redirectUrl === undefined
+      ? {}
+      : { redirectUrl: record.redirectUrl }),
+    ...(record.clientToken === undefined
+      ? {}
+      : { clientToken: record.clientToken }),
+  };
+}
+
+function storedCheckoutResult(record: StoredCheckout): CheckoutResult {
+  return {
+    mode: record.mode,
+    checkoutId: record.checkoutId,
+    status: record.status,
+    ...(record.redirectUrl === undefined
+      ? {}
+      : { redirectUrl: record.redirectUrl }),
+    ...(record.clientToken === undefined
+      ? {}
+      : { clientToken: record.clientToken }),
+  };
+}
+
+function checkoutIdempotencyKey(instanceId: string, key: string): string {
+  const digest = createHash("sha256").update(key).digest("hex");
+  return `forge/gateway/${storageSegment(instanceId)}/checkout/idemp/${digest}`;
+}
+
+function storageSegment(value: string): string {
+  if (
+    value.length > 0 &&
+    value.length <= 80 &&
+    isSafeStorageKey(value) &&
+    !value.includes("/")
+  ) {
+    return value;
+  }
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function toGatewayInstance(row: PluginInstanceRow): GatewayInstance {

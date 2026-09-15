@@ -81,6 +81,9 @@ export interface BoundServiceProvider extends ResolvedServiceProvider {
   terminate(
     input: Omit<ProvisionRequest, "instanceId" | "action">,
   ): Promise<HostProvisionResult>;
+  modify(
+    input: Omit<ProvisionRequest, "instanceId" | "action">,
+  ): Promise<HostProvisionResult>;
   getService(
     input: Omit<ReconcileRequest, "instanceId">,
   ): Promise<HostProvisionResult>;
@@ -205,6 +208,9 @@ export function createServiceRegistry(
       terminate(input) {
         return runProvision("terminate", input);
       },
+      modify(input) {
+        return runProvision("modify", input);
+      },
       getService(input) {
         return getServiceWithPlugin(plugin, instance, advertised, input);
       },
@@ -246,7 +252,7 @@ export function createServiceRegistry(
     assertCapability(advertised, ACTION_CAPABILITY[action]);
     const request = bindProvisionRequest(instance.id, action, input);
     const replay = await loadIdempotentResult(instance, request);
-    if (replay) {
+    if (replay && replay.status !== "pending") {
       return replay;
     }
 
@@ -258,7 +264,10 @@ export function createServiceRegistry(
       mapPluginError(error, "Service plugin operation failed");
     }
 
-    const result = toHostProvisionResult(raw, randomUUID());
+    const result = toHostProvisionResult(
+      raw,
+      replay?.operationId ?? randomUUID(),
+    );
     if (result.status !== "failed") {
       await persistProvision(instance, request, result);
     }
@@ -434,12 +443,18 @@ export function createServiceRegistry(
     result: HostProvisionResult,
   ): Promise<void> {
     const runtime = asRuntime(result.runtime);
+    const stored = await loadServiceState(
+      instance.pluginId,
+      instance.id,
+      request.serviceId,
+    );
+    const remoteId = result.remoteId ?? stored?.remoteId;
     const operation: StoredOperation = {
       action: request.action,
       idempotencyKey: request.idempotencyKey,
       operationId: result.operationId,
       status: result.status,
-      ...(result.remoteId === undefined ? {} : { remoteId: result.remoteId }),
+      ...(remoteId === undefined ? {} : { remoteId }),
       ...(result.message === undefined ? {} : { message: result.message }),
       ...(runtime === undefined ? {} : { runtime }),
     };
@@ -458,7 +473,7 @@ export function createServiceRegistry(
       instance.id,
       request.serviceId,
       {
-        remoteId: result.remoteId,
+        ...(remoteId === undefined ? {} : { remoteId }),
         status: result.status,
         operationId: result.operationId,
         runtime,
@@ -472,8 +487,10 @@ export function createServiceRegistry(
     serviceId: string,
     state: StoredServiceState,
   ): Promise<void> {
+    const existing = await loadServiceState(pluginId, instanceId, serviceId);
+    const remoteId = state.remoteId ?? existing?.remoteId;
     await persist.setKv(pluginId, serviceStateKey(instanceId, serviceId), {
-      ...(state.remoteId === undefined ? {} : { remoteId: state.remoteId }),
+      ...(remoteId === undefined ? {} : { remoteId }),
       status: state.status,
       ...(state.operationId === undefined
         ? {}

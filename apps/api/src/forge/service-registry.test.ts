@@ -524,4 +524,109 @@ describe("createServiceRegistry", () => {
     expect(error).toBeInstanceOf(ForgeError);
     expect((error as ForgeError).code).toBe("forge_plugin_failed");
   });
+
+  it("preserves remoteId when later provision actions omit it", async () => {
+    const plugin = new TestServicePlugin();
+    plugin.advertised = [
+      "provision.create",
+      "provision.suspend",
+      "provision.modify",
+    ];
+    plugin.provisionImpl = async (_ctx, request) => {
+      if (request.action === "create") {
+        return { status: "ok", remoteId: "remote-keep" };
+      }
+      return { status: "ok" };
+    };
+    const { persist, registry } = createHarness({ plugin });
+    await seedServiceInstall(persist);
+    const instance = await persist.createInstance({
+      pluginId: SERVICE_ID,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const provider = await registry.resolve(instance.id);
+    expect(typeof provider.modify).toBe("function");
+    const created = await provider.provisionService(provisionInput("svc-keep"));
+    expect(created.remoteId).toBe("remote-keep");
+
+    const suspended = await provider.suspend(
+      provisionInput("svc-keep", "idem-suspend"),
+    );
+    expect(suspended.remoteId).toBe("remote-keep");
+
+    const modified = await provider.modify(
+      provisionInput("svc-keep", "idem-modify"),
+    );
+    expect(modified.remoteId).toBe("remote-keep");
+
+    const state = await persist.getKv(
+      SERVICE_ID,
+      `forge/service/${instance.id}/svc-keep/state`,
+    );
+    expect(state).toMatchObject({
+      remoteId: "remote-keep",
+      status: "ok",
+    });
+  });
+
+  it("re-invokes provision when the stored result is still pending", async () => {
+    const plugin = new TestServicePlugin();
+    let calls = 0;
+    plugin.provisionImpl = async () => {
+      calls += 1;
+      if (calls === 1) {
+        return { status: "pending", remoteId: "remote-pending" };
+      }
+      return { status: "ok", remoteId: "remote-pending" };
+    };
+    const { persist, registry } = createHarness({ plugin });
+    await seedServiceInstall(persist);
+    const instance = await persist.createInstance({
+      pluginId: SERVICE_ID,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const provider = await registry.resolve(instance.id);
+    const first = await provider.provisionService(
+      provisionInput("svc-pending", "idem-pending"),
+    );
+    expect(first.status).toBe("pending");
+    expect(first.idempotentReplay).toBeUndefined();
+    expect(calls).toBe(1);
+
+    const second = await provider.provisionService(
+      provisionInput("svc-pending", "idem-pending"),
+    );
+    expect(second.status).toBe("ok");
+    expect(second.remoteId).toBe("remote-pending");
+    expect(second.idempotentReplay).toBeUndefined();
+    expect(second.operationId).toBe(first.operationId);
+    expect(calls).toBe(2);
+
+    const third = await provider.provisionService(
+      provisionInput("svc-pending", "idem-pending"),
+    );
+    expect(third.idempotentReplay).toBe(true);
+    expect(third.status).toBe("ok");
+    expect(third.remoteId).toBe("remote-pending");
+    expect(calls).toBe(2);
+  });
+
+  it("rejects modify when the plugin does not advertise provision.modify", async () => {
+    const { persist, registry } = createHarness();
+    await seedServiceInstall(persist);
+    const instance = await persist.createInstance({
+      pluginId: SERVICE_ID,
+      kind: "service",
+      displayName: "Primary",
+      enabled: true,
+    });
+    const provider = await registry.resolve(instance.id);
+    await expect(
+      provider.modify(provisionInput("svc-1", "idem-modify")),
+    ).rejects.toBeInstanceOf(ForgeValidationError);
+  });
 });
