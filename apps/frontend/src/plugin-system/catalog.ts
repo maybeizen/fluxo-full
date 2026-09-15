@@ -29,24 +29,26 @@ function isPanelPluginModule(value: unknown): value is PanelPluginModule {
 export async function loadPanelPluginCatalog(
   catalog: ResolvablePanelCatalog = panelPluginCatalog as ResolvablePanelCatalog,
 ): Promise<void> {
-  for (const id of Object.keys(catalog)) {
-    if (!Object.hasOwn(catalog, id) || !isPluginId(id)) {
-      continue;
-    }
-    const loader = catalog[id];
-    if (typeof loader !== "function") {
-      continue;
-    }
-    try {
-      const loaded = await loader();
-      if (!isPanelPluginModule(loaded)) {
-        continue;
+  await Promise.all(
+    Object.keys(catalog).map(async (id) => {
+      if (!Object.hasOwn(catalog, id) || !isPluginId(id)) {
+        return;
       }
-      if (typeof loaded.register === "function") {
-        loaded.register({ register: registerPanelContribution });
+      const loader = catalog[id];
+      if (typeof loader !== "function") {
+        return;
       }
-    } catch (error) {
-      console.warn(`Failed to load panel plugin ${id}`, error);
-    }
-  }
+      try {
+        const loaded = await loader();
+        if (!isPanelPluginModule(loaded)) {
+          return;
+        }
+        if (typeof loaded.register === "function") {
+          loaded.register({ register: registerPanelContribution });
+        }
+      } catch (error) {
+        console.warn(`Failed to load panel plugin ${id}`, error);
+      }
+    }),
+  );
 }

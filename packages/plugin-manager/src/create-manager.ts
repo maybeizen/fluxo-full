@@ -46,6 +46,16 @@ interface Candidate {
   manifest: PluginManifest;
 }
 
+export const PLUGIN_HOOK_TIMEOUT_MS = 15_000;
+
+export function pluginImportHref(entryFile: string, cacheBust: boolean): string {
+  const href = pathToFileURL(entryFile).href;
+  if (!cacheBust) {
+    return href;
+  }
+  return `${href}?t=${Date.now()}`;
+}
+
 type ManagerHook =
   "onInstall" | "onEnable" | "onStart" | "onStop" | "onDisable" | "onUninstall";
 
@@ -182,8 +192,22 @@ export function createPluginManager(
     if (!fn) {
       return undefined;
     }
-    try {
+    const timeoutMs = options.hookTimeoutMs ?? PLUGIN_HOOK_TIMEOUT_MS;
+    const work = Promise.resolve().then(async () => {
       await fn.call(entry.plugin, await contextFor(entry.id));
+    });
+    work.catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        work,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error(`${hook} timed out`));
+          }, timeoutMs);
+          timer.unref?.();
+        }),
+      ]);
       return undefined;
     } catch (error) {
       const message = errorMessage(error);
@@ -192,6 +216,10 @@ export function createPluginManager(
         error: message,
       });
       return message;
+    } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
     }
   }
 
@@ -217,8 +245,9 @@ export function createPluginManager(
   async function importPlugin(
     entryFile: string,
     manifest: PluginManifest,
+    cacheBust: boolean,
   ): Promise<FluxoPlugin> {
-    const href = `${pathToFileURL(entryFile).href}?t=${Date.now()}`;
+    const href = pluginImportHref(entryFile, cacheBust);
     const module = (await import(href)) as { default?: unknown };
     const exported = module.default;
     if (!isPluginShape(exported)) {
@@ -249,6 +278,7 @@ export function createPluginManager(
 
   async function loadCandidate(
     candidate: Candidate,
+    cacheBust = false,
   ): Promise<PluginLoadResult> {
     const { pluginRoot, id, manifest } = candidate;
 
@@ -279,7 +309,7 @@ export function createPluginManager(
 
     let plugin: FluxoPlugin;
     try {
-      plugin = await importPlugin(entryFile, manifest);
+      plugin = await importPlugin(entryFile, manifest, cacheBust);
     } catch (error) {
       const message = errorMessage(error);
       options.logger.error("plugin import failed", { id, error: message });
@@ -379,7 +409,7 @@ export function createPluginManager(
     return { results, candidates };
   }
 
-  async function loadAll(): Promise<PluginLoadResult[]> {
+  async function loadDiscovered(cacheBust: boolean): Promise<PluginLoadResult[]> {
     const { results, candidates } = await collectCandidates();
     const claimed = new Map<string, Candidate[]>();
     for (const candidate of candidates) {
@@ -416,10 +446,14 @@ export function createPluginManager(
         }
         continue;
       }
-      results.push(await loadCandidate(candidate));
+      results.push(await loadCandidate(candidate, cacheBust));
     }
 
     return results;
+  }
+
+  async function loadAll(): Promise<PluginLoadResult[]> {
+    return loadDiscovered(false);
   }
 
   async function requireEntry(id: string): Promise<PluginEntry> {
@@ -577,7 +611,7 @@ export function createPluginManager(
     if (id === undefined) {
       await stopAll();
       entries.clear();
-      await loadAll();
+      await loadDiscovered(true);
       return;
     }
     const pluginId = parsePluginId(id);
@@ -593,7 +627,7 @@ export function createPluginManager(
       await assertManifestInsideRoot(pluginRoot, manifestPath);
       const raw = await readJsonFile(manifestPath);
       const manifest = parsePluginManifest(raw);
-      await loadCandidate({ pluginRoot, id: pluginId, manifest });
+      await loadCandidate({ pluginRoot, id: pluginId, manifest }, true);
     } catch (error) {
       remember(fail(entry, errorMessage(error), true));
     }

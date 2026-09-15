@@ -31,6 +31,7 @@ export interface PluginManagerOptions {
   createContext: PluginContextFactory;
   getInstallState?: PluginInstallStateGetter;
   setInstallState?: PluginInstallStateSetter;
+  hookTimeoutMs?: number;
 }
 
 export interface PluginLoadResult {

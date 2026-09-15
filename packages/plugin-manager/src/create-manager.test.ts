@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import {
   mkdtemp,
   mkdir,
@@ -8,17 +9,26 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   FORGE_API_VERSION,
   ForgeConflictError,
   ForgeUnsupportedApiError,
 } from "@fluxo/forge";
 import { afterEach, describe, expect, it } from "vitest";
-import { createPluginManager } from "./create-manager.js";
+import {
+  PLUGIN_HOOK_TIMEOUT_MS,
+  createPluginManager,
+  pluginImportHref,
+} from "./create-manager.js";
 import { PluginNotFoundError, PluginNotLoadableError } from "./errors.js";
 import { createFakeLogger, createFakePluginContext } from "./fake-context.js";
 import { createMemoryInstallStore } from "./install-state.js";
-import type { PluginInstallState, PluginManager } from "./types.js";
+import type {
+  PluginInstallState,
+  PluginManager,
+  PluginManagerOptions,
+} from "./types.js";
 
 const dirs: string[] = [];
 
@@ -88,6 +98,7 @@ async function writePluginPackage(
 function createManager(
   directory: string,
   install?: Readonly<Record<string, PluginInstallState>>,
+  extra?: Pick<PluginManagerOptions, "hookTimeoutMs">,
 ): PluginManager {
   const store = createMemoryInstallStore(install);
   const logger = createFakeLogger();
@@ -97,6 +108,7 @@ function createManager(
     createContext: (pluginId) => createFakePluginContext(pluginId, logger),
     getInstallState: store.getInstallState,
     setInstallState: store.setInstallState,
+    ...extra,
   });
 }
 
@@ -407,6 +419,41 @@ describe("createPluginManager lifecycle", () => {
     ).toBe(true);
   });
 
+  it("marks a hung onStart as failed, starts other plugins, and completes loadAll", async () => {
+    expect(PLUGIN_HOOK_TIMEOUT_MS).toBe(15_000);
+    const directory = await tempDir();
+    await writePluginPackage(directory, "hangs", {
+      source: pluginSource(
+        baseManifest("hangs"),
+        `async onStart() { await new Promise(() => {}); },`,
+      ),
+    });
+    await writePluginPackage(directory, "okplugin", {
+      source: pluginSource(baseManifest("okplugin"), `async onStart() {},`),
+    });
+    const manager = createManager(
+      directory,
+      {
+        hangs: { installed: true, enabled: true },
+        okplugin: { installed: true, enabled: true },
+      },
+      { hookTimeoutMs: 50 },
+    );
+    const started = Date.now();
+    const results = await manager.loadAll();
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(results.find((result) => result.id === "hangs")?.ok).toBe(false);
+    expect(results.find((result) => result.id === "hangs")?.error).toMatch(
+      /timed out/i,
+    );
+    expect(results.find((result) => result.id === "okplugin")?.ok).toBe(true);
+    expect(manager.getActive("hangs")).toBeUndefined();
+    expect(manager.list().find((item) => item.id === "hangs")?.status).toBe(
+      "error",
+    );
+    expect(manager.getActive("okplugin")).toBeDefined();
+  });
+
   it("isolates onStart failures and still starts other plugins", async () => {
     const directory = await tempDir();
     await writePluginPackage(directory, "throws", {
@@ -539,5 +586,33 @@ describe("createPluginManager lifecycle", () => {
       "install\nenable\nstart\nstop\nstart\n",
     );
     expect(manager.getActive("alpha")).toBeDefined();
+  });
+
+  it("imports without a cache-bust query on loadAll", () => {
+    const href = pluginImportHref("/tmp/plugins/urlcheck/index.js", false);
+    expect(href).toBe(pathToFileURL("/tmp/plugins/urlcheck/index.js").href);
+    expect(href).not.toMatch(/[?&]t=/);
+    const source = readFileSync(
+      new URL("./create-manager.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("return loadDiscovered(false)");
+    expect(source).toContain("pluginImportHref(entryFile, cacheBust)");
+  });
+
+  it("busts the import cache on refresh", () => {
+    const href = pluginImportHref("/tmp/plugins/urlcheck/index.js", true);
+    expect(href).toMatch(/\?t=\d+$/);
+    expect(
+      href.startsWith(pathToFileURL("/tmp/plugins/urlcheck/index.js").href),
+    ).toBe(true);
+    const source = readFileSync(
+      new URL("./create-manager.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("await loadDiscovered(true)");
+    expect(source).toContain(
+      "await loadCandidate({ pluginRoot, id: pluginId, manifest }, true)",
+    );
   });
 });

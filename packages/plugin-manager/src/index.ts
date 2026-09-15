@@ -1,4 +1,7 @@
-export { createPluginManager } from "./create-manager.js";
+export {
+  PLUGIN_HOOK_TIMEOUT_MS,
+  createPluginManager,
+} from "./create-manager.js";
 export { PluginNotFoundError, PluginNotLoadableError } from "./errors.js";
 export { createFakeLogger, createFakePluginContext } from "./fake-context.js";
 export { createMemoryInstallStore } from "./install-state.js";
